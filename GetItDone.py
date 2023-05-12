@@ -20,7 +20,7 @@ async def on_ready():
 @client.event
 async def on_message(message):
     if message.author == client.user:
-            return
+        return
 
     if message.content.startswith('.'):
         await message.channel.send('Hello!')
