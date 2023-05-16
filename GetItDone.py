@@ -185,7 +185,7 @@ def import_assignments(*args: tuple):
                     # print('\n')
     
     # cse481p should have 21 assignments 
-    print(len(assignments))
+    # print(len(assignments))
     return assignments
 
 
@@ -209,13 +209,12 @@ def format_time(due_date):
     return date_str
 
 
-@bot.tree.command(name='import',
-                  help="Import Canvas assignments from a particular class. EX: /import https://canvas.uw.edu/... cse481p",
-                  brief="Import Canvas assignments from a particular class.")
+@bot.tree.command(name='import')
 async def import_assignments_request(interaction: discord.Interaction, *args: tuple):
     '''
     Bot request to import assignments from Canvas
     args should contain Canvas URL and class code 
+    EX: /import https://canvas.uw.edu/... cse481p
     '''
     assignments = import_assignments(*args)
     class_code = get_class_code(*args)
@@ -231,20 +230,19 @@ async def print_import_assignments_request_response(interaction: discord.Interac
         title=f'Success! Imported {len(assignments_list)} assignments from {class_code}',
         description='Use /assignments to view all assignments.',
         color=0x1DB954)  
-    await interaction.channel.respond(embed=embed)
+    await interaction.channel.send(embed=embed)
 
 
-@bot.tree.command(name='assignments',
-                  help="Get a list of all imported assignments. EX: /assignments",
-                  brief="Get a list of all imported assignments.")
+@bot.tree.command(name='assignments')
 async def get_assignments_request(interaction: discord.Interaction):
     '''
     Bot request to get a list of all assignments 
+    /assignments
     '''
     assignments = import_assignments()
     if len(assignments) > 0:
         await print_get_assignments_request_response(interaction, assignments)
-    await interaction.channel.respond('No assignments')
+    await interaction.channel.send('No assignments')
 
 
 async def print_get_assignments_request_response(interaction: discord.Interaction, assignments: list):
