@@ -231,7 +231,7 @@ async def print_import_assignments_request_response(interaction: discord.Interac
         title=f'Success! Imported {len(assignments_list)} assignments from {class_code}',
         description='Use /assignments to view all assignments.',
         color=0x1DB954)  
-    await interaction.channel.send(embed=embed)
+    await interaction.channel.respond(embed=embed)
 
 
 @bot.tree.command(name='assignments',
@@ -244,7 +244,7 @@ async def get_assignments_request(interaction: discord.Interaction):
     assignments = import_assignments()
     if len(assignments) > 0:
         await print_get_assignments_request_response(interaction, assignments)
-    await interaction.channel.send('No assignments')
+    await interaction.channel.respond('No assignments')
 
 
 async def print_get_assignments_request_response(interaction: discord.Interaction, assignments: list):
@@ -261,7 +261,7 @@ async def print_get_assignments_request_response(interaction: discord.Interactio
             timestamp=f'{format_time(assgn.get_due_date())}',
             url={assgn.get_url()})
         embed.set_footer(text=f'{assgn.get_uid()}')
-        await interaction.channel.send(embed=embed)
+        await interaction.channel.respond(embed=embed)
         time.sleep(2)
 
 
