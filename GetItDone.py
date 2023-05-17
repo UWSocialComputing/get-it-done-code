@@ -317,7 +317,7 @@ def format_time(due_date):
     return date_str
 
 
-@bot.tree.command(name='import')
+@bot.tree.command(name="import")
 async def import_assignments_request(interaction: discord.Interaction, 
                                      args: str):
     '''
@@ -342,13 +342,13 @@ async def print_import_assignments_request_response(interaction: discord.Interac
     await interaction.channel.send(embed=embed)
 
 
-@bot.tree.command(name='assignments')
+@bot.tree.command(name="assignments")
 async def get_assignments_request(interaction: discord.Interaction):
     '''
     Bot request to get a list of all assignments
     /assignments
     '''
-    assignments = import_assignments()
+    # assignments = import_assignments()
     if len(assignments) > 0:
         await print_get_assignments_request_response(interaction, assignments)
     await interaction.channel.send('No assignments')
