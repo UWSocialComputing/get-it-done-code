@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 # imports for getting Canvas assignments
 import requests
 from icalendar import Calendar
-from datetime import datetime # might not need this
+import datetime # might not need this
 from pytz import UTC # timezone - might not need this
 import time
 
@@ -179,6 +179,7 @@ headers = ['BEGIN', 'UID', 'DTEND', 'SUMMARY', 'URL', 'END']
 
 
 # maybe if we have time we can allow assignments to be edited - like changing title or due date
+# we could also create a color field or boolean and change it once it's been completed, instead of going into the embed every time
 class Assignment:
     '''
     each assignment has a unique ID, title, url, and deadline
@@ -188,6 +189,9 @@ class Assignment:
         self.title = title
         self.url = url
         self.due_date = due_date
+
+    def get_uid(self):
+        return self.uid
 
     def set_title(self, title):
         self.title = title
@@ -212,12 +216,13 @@ class Assignment:
 
 
 # global variables, since they will be referred to in any context
-assignments = []
+assignments = [] # will have to store these in the database so we can refer back to them 
 class_code = ''
+
 
 def get_link(all_args):
     '''
-    get assignment url
+    parse user input arguments to get Canvas calendar link
     '''
     all_args = all_args.split(' ')
     return all_args[0]
@@ -225,27 +230,26 @@ def get_link(all_args):
 
 def get_class_code(all_args):
     '''
-    get class code, with no spaces
+    get desired class code from user input, with no spaces
     '''
     class_code = ''
     all_args = all_args.split(' ')
+    
     for i in range(1, len(all_args)):
         class_code += all_args[i].lower()
+    
     return class_code
 
 
 def import_assignments(args):
     '''
-    method to parse Canvas link request to add all assignments to a global list
-    assumes args = [link], [class code, which might have spaces]
+    method to parse Canvas calendar link request to add all assignments to a global list
+    assumes args = [link] [class code, which might have spaces]
     '''
+    # sample link: https://canvas.uw.edu/feeds/calendars/user_qkZr6adOTXT0f39gFbhD5WxQXVyLliTHGaHkcE4d.ics
+    canvas_calendar_link = requests.get(get_link(args)).text
 
-    # canvas_link = requests.get('https://canvas.uw.edu/feeds/calendars/user_qkZr6adOTXT0f39gFbhD5WxQXVyLliTHGaHkcE4d.ics').text
-    # canvas_link = requests.get(args[0]).text
-    canvas_link = requests.get(get_link(args)).text
-
-    # class_code = 'CSE481P'
-    # get class code from user's request, with no spaces
+    # sample class code: CSE481P
     class_code = get_class_code(args)
 
     # Fields we are saving for each assignment
@@ -255,8 +259,8 @@ def import_assignments(args):
     url = '' # assignment Canvas url
 
     # loop through the calendar request and create assignment items for each event-assignment
-    # add them to global list of assignments
-    gcal = Calendar.from_ical(canvas_link)
+    # & add them to global list of assignments
+    gcal = Calendar.from_ical(canvas_calendar_link)
     for component in gcal.walk():
         if component.name == "VEVENT":
             uid = component.get('uid')
@@ -265,64 +269,74 @@ def import_assignments(args):
             if 'assignment' in uid:
                 title = component.get('summary')
 
-                # detect class code in title
+                # detect class code in assignment title
                 title_and_classcode = title.replace(' ', '').lower()
 
-                # detect if class code of assignment matches the class of the user's request
+                # detect if class code of assignment matches the class code of the user's request
                 if class_code in title_and_classcode:
-                    # get title
+                    # get title w/o class code 
                     title_arr = title.split(' [')
                     title = title_arr[0]
 
-                    # get due date
+                    # get due date as a datetime object
                     due_date = component.get('dtend').dt
 
-                    # get url
-                    url = component.get('url')
+                    # start forming assignment page url 
+                    url = 'https://canvas.uw.edu/courses/'
 
-                    # make id to just be a number
-                    uid_split = component.get('uid').split('-')
-                    uid = uid_split[-1]
+                    # get the course ID from the assignment's url: split query on course then get link[1], remove underscore, split on & take [0]
+                    course_id = component.get('url').split('course')[1].split('&')[0].replace('_', '')
+                    url += course_id
+                    url += '/assignments/'
+
+                    # make id to just be a number 
+                    uid = uid.split('-')[-1]
+                    
+                    # add assignment id to complete canvas assignment url 
+                    url += uid
 
                     # create a new assignment and add it to the list of assignments
                     assignments.append(Assignment(uid, title, url, due_date))
-                    # print(title)
-                    # print(due_date)
-                    # print(url)
-                    # print(uid)
-                    # print('\n')
 
     # cse481p should have 21 assignments
-    # print(len(assignments))
     return assignments
 
 
+# fix this so we can create reminders
 def format_time(due_date):
     '''
     Format assignment due date in the required format for Discord embedded messages
+    * doesn't work rn 
     '''
     # in canvas: 20230606T183000Z
     # need: 2023-06-06T18:00:00.000Z
-    indices = [0,4,6,11,13]
-    date_str = ''
-    prev_index_value = 0
-    for num in indices:
-        date_str += due_date[prev_index_value:num]
-        if num == 4 or num == 6:
-            date_str += '-'
-        elif num == 11 or 13:
-            date_str += ':'
-        prev_index_value = num
-    date_str += '00.000Z'
-    return date_str
+
+    # date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
+    # print("date and time:",date_time)
+    return datetime.datetime.strptime(str(due_date), '%Y-%m-%d %H:%M:%S%z')
+    # return due_date.strftime('%Y-%m-%d T%H:%M:%S.000Z')
+
+    # indices = [0,4,6,11,13]
+    # date_str = ''
+    # prev_index_value = 0
+    # for num in indices:
+    #     date_str += due_date[prev_index_value:num]
+    #     if num == 4 or num == 6:
+    #         date_str += '-'
+    #     elif num == 11 or 13:
+    #         date_str += ':'
+    #     prev_index_value = num
+    # date_str += '00.000Z'
+    # return date_str
 
 
+# maybe rename args so it's helpful for the user when using the command
 @bot.tree.command(name="import")
 async def import_assignments_request(interaction: discord.Interaction, 
                                      args: str):
     '''
-    Bot request to import assignments from Canvas
-    args should contain Canvas URL and class code 
+    Bot request to import assignments from Canvas calendar
+    args should contain Canvas calendar URL and class code 
     EX: /import https://canvas.uw.edu/... cse481p
     '''
     assignments = import_assignments(args)
@@ -346,12 +360,13 @@ async def print_import_assignments_request_response(interaction: discord.Interac
 async def get_assignments_request(interaction: discord.Interaction):
     '''
     Bot request to get a list of all assignments
-    /assignments
     '''
     # assignments = import_assignments()
+    # will have to refer back to the database for list of assignments 
     if len(assignments) > 0:
         await print_get_assignments_request_response(interaction, assignments)
-    await interaction.channel.send('No assignments')
+    else: 
+        await interaction.channel.send('No assignments')
 
 
 async def print_get_assignments_request_response(interaction: discord.Interaction, 
@@ -364,13 +379,13 @@ async def print_get_assignments_request_response(interaction: discord.Interactio
         embed = discord.Embed(
             type='rich',
             title=f'{assgn.get_title()}',
-            description='Use /assignments to view all assignments.',
             color=0xFF5733,
-            timestamp=f'{format_time(assgn.get_due_date())}',
-            url={assgn.get_url()})
+            # timestamp={format_time(assgn.get_due_date())},
+            # error: TypeError: Expected datetime.datetime or None received set instead
+            url=f'{assgn.get_url()}')
         embed.set_footer(text=f'{assgn.get_uid()}')
-        await interaction.channel.respond(embed=embed)
-        time.sleep(2)
+        await interaction.channel.send(embed=embed)
+        time.sleep(1)
 
 
 bot.run(TOKEN)
