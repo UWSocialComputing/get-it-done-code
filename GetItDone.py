@@ -216,7 +216,7 @@ assignments = []
 class_code = ''
 
 
-def get_class_code(*args: tuple[str, ...]):
+def get_class_code(*args):
     '''
     get class code, with no spaces
     '''
@@ -225,7 +225,7 @@ def get_class_code(*args: tuple[str, ...]):
         class_code += arg.lower()
 
 
-def import_assignments(*args: tuple[str, ...]):
+def import_assignments(*args):
     '''
     method to parse Canvas link request to add all assignments to a global list
     assumes args = [link], [class code, which might have spaces]
@@ -308,7 +308,7 @@ def format_time(due_date):
 
 
 @bot.tree.command(name='import')
-async def import_assignments_request(interaction: discord.Interaction, *args: tuple[str, ...]):
+async def import_assignments_request(interaction, *args):
     '''
     Bot request to import assignments from Canvas
     args should contain Canvas URL and class code 
@@ -319,8 +319,8 @@ async def import_assignments_request(interaction: discord.Interaction, *args: tu
     await print_import_assignments_request_response(interaction, assignments, class_code)
 
 
-async def print_import_assignments_request_response(interaction: discord.Interaction, 
-                                                    assignments_list: list, class_code: str):
+async def print_import_assignments_request_response(interaction, 
+                                                    assignments_list, class_code):
     '''
     Bot response to print success message after importing assignments
     '''
@@ -332,7 +332,7 @@ async def print_import_assignments_request_response(interaction: discord.Interac
 
 
 @bot.tree.command(name='assignments')
-async def get_assignments_request(interaction: discord.Interaction):
+async def get_assignments_request(interaction):
     '''
     Bot request to get a list of all assignments
     /assignments
@@ -343,7 +343,7 @@ async def get_assignments_request(interaction: discord.Interaction):
     await interaction.channel.send('No assignments')
 
 
-async def print_get_assignments_request_response(interaction: discord.Interaction, assignments: list):
+async def print_get_assignments_request_response(interaction, assignments):
     '''
     Bot response that loops through assignment list and sends individual messages with embedded assignments
     If we have time it would be cool to change the color associated with each assignment as it's finished?
