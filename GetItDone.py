@@ -7,11 +7,11 @@ import sqlite3
 from discord.ext import commands
 from dotenv import load_dotenv
 
-# imports for getting Canvas assignments 
+# imports for getting Canvas assignments
 import requests
 from icalendar import Calendar
-from datetime import datetime # might not need this 
-from pytz import UTC # timezone - might not need this 
+from datetime import datetime # might not need this
+from pytz import UTC # timezone - might not need this
 import time
 
 load_dotenv()
@@ -41,38 +41,136 @@ async def on_message(message):
     if message.content.startswith('.'):
         await message.channel.send('Hello!')
 
+@bot.tree.command(name="setup")
+async def intro_setup(interaction: discord.Interaction):
+    await interaction.response.defer()
+    guild = interaction.guild
+    for category in guild.categories:
+        if category.name == "test":
+            channels = category.channels
+            for channel in channels:
+                try:
+                    await channel.delete()
+                except AttributeError:
+                    pass
+            await category.delete()
+            break
+
+    template_category = await guild.create_category(name="new-test")
+    await template_category.create_text_channel(name="general")
+    await template_category.create_text_channel(name="reminder")
+    await template_category.create_text_channel(name="to-do")
+    await template_category.create_text_channel(name="bot")
+    embed = discord.Embed(
+        title="👋 Welcome to Get It Done!",
+        description="This bot organizes group work for teams to work more efficiently and effectively.\n"+
+                    "Some commands you should know:",
+        colour=discord.Colour.dark_green()
+    )
+    embed.add_field(
+        name="/new [@user] [task] [date]",
+        value = "🏷️ Assign a new [task] to a [user], due by [date]",
+        inline=False
+    )
+    embed.add_field(
+        name="/remind [@user] [task]",
+        value = "🔔 Anonymously remind a [user] of their [task] that’s due soon",
+        inline=False
+    )
+    embed.add_field(
+        name="/import [canvas link]",
+        value = "📝 Import all assignments from a Canvas calendar feed link",
+        inline=False
+    )
+    await interaction.followup.send(embed=embed)
+    # await interaction.followup.send(
+    #     "👋 Welcome to **Get It Done**!\n"
+    #     "This bot organizes group work for teams to work more efficiently and effectively.\n"
+    #     "Some commands you should know:\n\n"
+
+    #     "**/new [@user] [task] [date]**\n"
+    #     "🏷️ Assign a new **[task]** to a **[user]**, due by **[date]**\n\n"
+
+    #     "**/remind [@user] [task]**\n"
+    #     "🔔 Anonymously remind a **[user]** of their **[task]** that’s due soon\n"
+
+    #     "**/import [canvas link] [class code]**\n"
+    #     "📝 Import all assignments from a Canvas calendar feed link\n\n"
+
+    #     "/help\n"
+    #     "🔍 View all commands"
+    # )
+
+# A temp command to undo changes made by intro_setup()
+@bot.tree.command(name="undo")
+async def undo(interaction: discord.Interaction):
+    await interaction.response.defer()
+    guild = interaction.guild
+    for category in guild.categories:
+        if category.name == "new-test":
+            channels = category.channels
+            for channel in channels:
+                try:
+                    await channel.delete()
+                except AttributeError:
+                    pass
+            await category.delete()
+            break
+
+    template_category = await guild.create_category(name="test")
+    await template_category.create_text_channel(name="1")
+    await template_category.create_text_channel(name="2")
+    await interaction.followup.send("Sucessfully undid changes made by /setup")
+
 @bot.tree.command(name="hello")
 async def hello(interaction: discord.Interaction):
     await interaction.response.send_message("HI")
 
 @bot.tree.command(name="help")
-async def hello(interaction: discord.Interaction):
-    await interaction.response.send_message(
-        "**COMMANDS**\n\n"
+async def help(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="How to use Get It Done",
+        description="Here is a list of commands that you can use:",
+        colour=discord.Colour.dark_green()
+    )
+    embed.add_field(
+        name="/new [@user] [task] [date]",
+        value = "[@user] - assign the task to\n" +
+                "[task] - the task\n" +
+                "[date] - the date to complete the task by, format: mm/dd/yy\n" +
+                "Bot sends out a 24-hr reminder before deadline\n" +
+                "React to the bot message to mark complete \n\n",
+        inline=False
+    )
+    embed.add_field(
+        name="/remind [@user] [task]",
+        value = "Bot DMs specified user of a task assigned to them and its deadline",
+        inline=False
+    )
+    embed.add_field(
+        name="/import [canvas link]",
+        value = "To import assignment deadlines from canvas" +
+                "Bot will send out reminders (3 days?) before the deadline",
+        inline=False
+    )
+    embed.add_field(
+        name="/assignments",
+        value = "To view all (imported) assignments that haven’t passed yet",
+        inline=False
+    )
+    embed.add_field(
+        name="/tasks ([@user])",
+        value = "[@user] - view the incomplete tasks of a specific user\n" +
+                "Otherwise all incomplete tasks will be shown",
+        inline=False
+    )
+    embed.add_field(
+        name="/help",
+        value = "To view all commands",
+        inline=False
+    )
+    await interaction.response.send_message(embed=embed)
 
-        "**/new [@user] [task] [date]**\n"
-        "   **[@user]** - to assign the task to\n"
-        "   **[task]** - the task\n"
-        "   **[date]** - the date to complete the task by, format: mm/dd/yy\n"
-        "   Bot sends out a 24-hr reminder before deadline\n"
-        "   React to the bot message to mark complete \n\n"
-
-        "**/remind [@user] [task]**\n"
-        "   Bot DMs specified user of a task assigned to them and its deadline\n\n"
-
-        "**/import [canvas link]**\n"
-        "   To import assignment deadlines from canvas\n"
-        "   Bot will send out reminders (3 days?) before the deadline\n\n"
-
-        "**/assignments**\n"
-        "   To view all (imported) assignments that haven’t passed yet\n\n"
-
-        "**/tasks [@user]**\n"
-        "   To view the incomplete tasks of a specific user\n\n"
-
-        "**/help**\n" +
-        "   Get all commands"
-        )
 
 
 # ----- Importing Canvas Assignments -----
@@ -80,8 +178,8 @@ async def hello(interaction: discord.Interaction):
 headers = ['BEGIN', 'UID', 'DTEND', 'SUMMARY', 'URL', 'END']
 
 
-# maybe if we have time we can allow assignments to be edited - like changing title or due date 
-class Assignment: 
+# maybe if we have time we can allow assignments to be edited - like changing title or due date
+class Assignment:
     '''
     each assignment has a unique ID, title, url, and deadline
     '''
@@ -93,10 +191,10 @@ class Assignment:
 
     def set_title(self, title):
         self.title = title
-    
+
     def get_title(self):
         return self.title
-    
+
     def set_url(self, url):
         self.url = url
 
@@ -113,7 +211,7 @@ class Assignment:
         return "ASSIGNMENT:", self.get_title, "URL:", self.get_url, "DEADLINE:", self.due_date
 
 
-# global variables, since they will be referred to in any context 
+# global variables, since they will be referred to in any context
 assignments = []
 class_code = ''
 
@@ -140,58 +238,58 @@ def import_assignments(*args: tuple[str, ...]):
     # get class code from user's request, with no spaces
     class_code = get_class_code(args)
 
-    # Fields we are saving for each assignment 
+    # Fields we are saving for each assignment
     title = '' # assignment title in summary
     due_date = '' # deadline in python dt format
-    uid = '' # assignment ID in uid 
-    url = '' # assignment Canvas url 
+    uid = '' # assignment ID in uid
+    url = '' # assignment Canvas url
 
     # loop through the calendar request and create assignment items for each event-assignment
-    # add them to global list of assignments 
+    # add them to global list of assignments
     gcal = Calendar.from_ical(canvas_link)
     for component in gcal.walk():
         if component.name == "VEVENT":
             uid = component.get('uid')
 
-            # only get assignments 
+            # only get assignments
             if 'assignment' in uid:
                 title = component.get('summary')
-                
-                # detect class code in title 
+
+                # detect class code in title
                 title_and_classcode = title.replace(' ', '').lower()
 
-                # detect if class code of assignment matches the class of the user's request 
+                # detect if class code of assignment matches the class of the user's request
                 if class_code in title_and_classcode:
-                    # get title 
+                    # get title
                     title_arr = title.split(' [')
                     title = title_arr[0]
 
-                    # get due date 
+                    # get due date
                     due_date = component.get('dtend').dt
 
-                    # get url 
+                    # get url
                     url = component.get('url')
 
-                    # make id to just be a number 
+                    # make id to just be a number
                     uid_split = component.get('uid').split('-')
                     uid = uid_split[-1]
 
-                    # create a new assignment and add it to the list of assignments 
+                    # create a new assignment and add it to the list of assignments
                     assignments.append(Assignment(uid, title, url, due_date))
                     # print(title)
                     # print(due_date)
                     # print(url)
                     # print(uid)
                     # print('\n')
-    
-    # cse481p should have 21 assignments 
+
+    # cse481p should have 21 assignments
     # print(len(assignments))
     return assignments
 
 
 def format_time(due_date):
     '''
-    Format assignment due date in the required format for Discord embedded messages 
+    Format assignment due date in the required format for Discord embedded messages
     '''
     # in canvas: 20230606T183000Z
     # need: 2023-06-06T18:00:00.000Z
@@ -236,7 +334,7 @@ async def print_import_assignments_request_response(interaction: discord.Interac
 @bot.tree.command(name='assignments')
 async def get_assignments_request(interaction: discord.Interaction):
     '''
-    Bot request to get a list of all assignments 
+    Bot request to get a list of all assignments
     /assignments
     '''
     assignments = import_assignments()
@@ -248,7 +346,7 @@ async def get_assignments_request(interaction: discord.Interaction):
 async def print_get_assignments_request_response(interaction: discord.Interaction, assignments: list):
     '''
     Bot response that loops through assignment list and sends individual messages with embedded assignments
-    If we have time it would be cool to change the color associated with each assignment as it's finished? 
+    If we have time it would be cool to change the color associated with each assignment as it's finished?
     '''
     for assgn in assignments:
         embed = discord.Embed(
