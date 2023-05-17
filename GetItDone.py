@@ -13,7 +13,6 @@ from icalendar import Calendar
 from datetime import datetime # might not need this 
 from pytz import UTC # timezone - might not need this 
 import time
-from typing import Tuple
 
 load_dotenv()
 
@@ -119,7 +118,7 @@ assignments = []
 class_code = ''
 
 
-def get_class_code(*args: Tuple):
+def get_class_code(*args: tuple[str, ...]):
     '''
     get class code, with no spaces
     '''
@@ -128,7 +127,7 @@ def get_class_code(*args: Tuple):
         class_code += arg.lower()
 
 
-def import_assignments(*args: Tuple):
+def import_assignments(*args: tuple[str, ...]):
     '''
     method to parse Canvas link request to add all assignments to a global list
     assumes args = [link], [class code, which might have spaces]
@@ -211,7 +210,7 @@ def format_time(due_date):
 
 
 @bot.tree.command(name='import')
-async def import_assignments_request(interaction: discord.Interaction, *args: Tuple):
+async def import_assignments_request(interaction: discord.Interaction, *args: tuple[str, ...]):
     '''
     Bot request to import assignments from Canvas
     args should contain Canvas URL and class code 
@@ -223,7 +222,7 @@ async def import_assignments_request(interaction: discord.Interaction, *args: Tu
 
 
 async def print_import_assignments_request_response(interaction: discord.Interaction, 
-                                                    assignments_list, class_code):
+                                                    assignments_list: list, class_code: str):
     '''
     Bot response to print success message after importing assignments
     '''
