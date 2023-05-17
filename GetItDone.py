@@ -62,23 +62,45 @@ async def intro_setup(interaction: discord.Interaction):
     await template_category.create_text_channel(name="reminder")
     await template_category.create_text_channel(name="to-do")
     await template_category.create_text_channel(name="bot")
-    await interaction.followup.send(
-        "👋 Welcome to **Get It Done**!\n"
-        "This bot organizes group work for teams to work more efficiently and effectively.\n"
-        "Some commands you should know:\n\n"
-
-        "**/new [@user] [task] [date]**\n"
-        "🏷️ Assign a new **[task]** to a **[user]**, due by **[date]**\n\n"
-
-        "**/remind [@user] [task]**\n"
-        "🔔 Anonymously remind a **[user]** of their **[task]** that’s due soon\n"
-
-        "**/import [canvas link] [class code]**\n"
-        "📝 Import all assignments from a Canvas calendar feed link\n\n"
-
-        "/help\n"
-        "🔍 View all commands"
+    embed = discord.Embed(
+        title="👋 Welcome to Get It Done!",
+        description="This bot organizes group work for teams to work more efficiently and effectively.\n"+
+                    "Some commands you should know:",
+        colour=discord.Colour.dark_green()
     )
+    embed.add_field(
+        name="/new [@user] [task] [date]",
+        value = "🏷️ Assign a new [task] to a [user], due by [date]",
+        inline=False
+    )
+    embed.add_field(
+        name="/remind [@user] [task]",
+        value = "🔔 Anonymously remind a [user] of their [task] that’s due soon",
+        inline=False
+    )
+    embed.add_field(
+        name="/import [canvas link]",
+        value = "📝 Import all assignments from a Canvas calendar feed link",
+        inline=False
+    )
+    await interaction.followup.send(embed=embed)
+    # await interaction.followup.send(
+    #     "👋 Welcome to **Get It Done**!\n"
+    #     "This bot organizes group work for teams to work more efficiently and effectively.\n"
+    #     "Some commands you should know:\n\n"
+
+    #     "**/new [@user] [task] [date]**\n"
+    #     "🏷️ Assign a new **[task]** to a **[user]**, due by **[date]**\n\n"
+
+    #     "**/remind [@user] [task]**\n"
+    #     "🔔 Anonymously remind a **[user]** of their **[task]** that’s due soon\n"
+
+    #     "**/import [canvas link] [class code]**\n"
+    #     "📝 Import all assignments from a Canvas calendar feed link\n\n"
+
+    #     "/help\n"
+    #     "🔍 View all commands"
+    # )
 
 # A temp command to undo changes made by intro_setup()
 @bot.tree.command(name="undo")
@@ -107,32 +129,49 @@ async def hello(interaction: discord.Interaction):
 
 @bot.tree.command(name="help")
 async def help(interaction: discord.Interaction):
-    await interaction.response.send_message(
-        "**COMMANDS**\n\n"
-
-        "**/new [@user] [task] [date]**\n"
-        "   **[@user]** - to assign the task to\n"
-        "   **[task]** - the task\n"
-        "   **[date]** - the date to complete the task by, format: mm/dd/yy\n"
-        "   Bot sends out a 24-hr reminder before deadline\n"
-        "   React to the bot message to mark complete \n\n"
-
-        "**/remind [@user] [task]**\n"
-        "   Bot DMs specified user of a task assigned to them and its deadline\n\n"
-
-        "**/import [canvas link]**\n"
-        "   To import assignment deadlines from canvas\n"
-        "   Bot will send out reminders (3 days?) before the deadline\n\n"
-
-        "**/assignments**\n"
-        "   To view all (imported) assignments that haven’t passed yet\n\n"
-
-        "**/tasks [@user]**\n"
-        "   To view the incomplete tasks of a specific user\n\n"
-
-        "**/help**\n" +
-        "   Get all commands"
+    embed = discord.Embed(
+        title="How to use Get It Done",
+        description="Here is a list of commands that you can use:",
+        colour=discord.Colour.dark_green()
     )
+    embed.add_field(
+        name="/new [@user] [task] [date]",
+        value = "[@user] - assign the task to\n" +
+                "[task] - the task\n" +
+                "[date] - the date to complete the task by, format: mm/dd/yy\n" +
+                "Bot sends out a 24-hr reminder before deadline\n" +
+                "React to the bot message to mark complete \n\n",
+        inline=False
+    )
+    embed.add_field(
+        name="/remind [@user] [task]",
+        value = "Bot DMs specified user of a task assigned to them and its deadline",
+        inline=False
+    )
+    embed.add_field(
+        name="/import [canvas link]",
+        value = "To import assignment deadlines from canvas" +
+                "Bot will send out reminders (3 days?) before the deadline",
+        inline=False
+    )
+    embed.add_field(
+        name="/assignments",
+        value = "To view all (imported) assignments that haven’t passed yet",
+        inline=False
+    )
+    embed.add_field(
+        name="/tasks ([@user])",
+        value = "[@user] - view the incomplete tasks of a specific user\n" +
+                "Otherwise all incomplete tasks will be shown",
+        inline=False
+    )
+    embed.add_field(
+        name="/help",
+        value = "To view all commands",
+        inline=False
+    )
+    await interaction.response.send_message(embed=embed)
+
 
 
 # # ----- Importing Canvas Assignments -----
