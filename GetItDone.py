@@ -215,24 +215,34 @@ class Assignment:
 assignments = []
 class_code = ''
 
+def get_link(all_args):
+    '''
+    get assignment url
+    '''
+    all_args = all_args.split(' ')
+    return all_args[0]
 
-def get_class_code(*args):
+
+def get_class_code(all_args):
     '''
     get class code, with no spaces
     '''
     class_code = ''
-    for arg in args[1:]:
-        class_code += arg.lower()
+    all_args = all_args.split(' ')
+    for i in range(1, len(all_args)):
+        class_code += all_args[i].lower()
+    return class_code
 
 
-def import_assignments(*args):
+def import_assignments(args):
     '''
     method to parse Canvas link request to add all assignments to a global list
     assumes args = [link], [class code, which might have spaces]
     '''
 
     # canvas_link = requests.get('https://canvas.uw.edu/feeds/calendars/user_qkZr6adOTXT0f39gFbhD5WxQXVyLliTHGaHkcE4d.ics').text
-    canvas_link = requests.get(args[0]).text
+    # canvas_link = requests.get(args[0]).text
+    canvas_link = requests.get(get_link(args)).text
 
     # class_code = 'CSE481P'
     # get class code from user's request, with no spaces
@@ -308,19 +318,20 @@ def format_time(due_date):
 
 
 @bot.tree.command(name='import')
-async def import_assignments_request(interaction, *args):
+async def import_assignments_request(interaction: discord.Interaction, 
+                                     args: str):
     '''
     Bot request to import assignments from Canvas
     args should contain Canvas URL and class code 
     EX: /import https://canvas.uw.edu/... cse481p
     '''
-    assignments = import_assignments(*args)
-    class_code = get_class_code(*args)
+    assignments = import_assignments(args)
+    class_code = get_class_code(args)
     await print_import_assignments_request_response(interaction, assignments, class_code)
 
 
-async def print_import_assignments_request_response(interaction, 
-                                                    assignments_list, class_code):
+async def print_import_assignments_request_response(interaction: discord.Interaction, 
+                                                    assignments_list: list, class_code: str):
     '''
     Bot response to print success message after importing assignments
     '''
@@ -332,7 +343,7 @@ async def print_import_assignments_request_response(interaction,
 
 
 @bot.tree.command(name='assignments')
-async def get_assignments_request(interaction):
+async def get_assignments_request(interaction: discord.Interaction):
     '''
     Bot request to get a list of all assignments
     /assignments
@@ -343,7 +354,8 @@ async def get_assignments_request(interaction):
     await interaction.channel.send('No assignments')
 
 
-async def print_get_assignments_request_response(interaction, assignments):
+async def print_get_assignments_request_response(interaction: discord.Interaction, 
+                                                 assignments: list):
     '''
     Bot response that loops through assignment list and sends individual messages with embedded assignments
     If we have time it would be cool to change the color associated with each assignment as it's finished?
