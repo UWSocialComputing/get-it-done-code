@@ -209,17 +209,27 @@ async def create_todo(interaction:discord.Interaction,
     con.commit()
     await interaction.response.send_message(embed=embed)
 
-    # waiting to mark complete
+    # wait for reaction to mark complete
     def check(reaction, user):
         return str(reaction.emoji) == '✅'
     
-    reaction = await bot.wait_for("reaction_add", check=check)  # Wait for a reaction
-    print(reaction)
+    await bot.wait_for("reaction_add", check=check)
     # set completed bit to 1 in db; eventually use taskid
     query = f"UPDATE Todos SET Completed = 1 WHERE UserID={member.id} AND Description='{todo}'"
     cur.execute(query)
     con.commit()
     await interaction.followup.send(f'Completed to-do "{todo}!"')
+
+@bot.tree.command(name="clear", description="clear")
+async def get_todos(interaction: discord.Interaction):
+    '''
+    Clears all user tasks (for testing)
+    ''' 
+    user_id = interaction.user.id
+    query = f"DELETE * FROM Todos WHERE UserID={user_id}"
+    cur.execute(query)
+    con.commit()
+    await interaction.response.send_message('deleted')
 
 # @bot.event
 # async def on_reaction_add(reaction, user):
