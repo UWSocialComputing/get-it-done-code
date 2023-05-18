@@ -154,24 +154,24 @@ async def help(interaction: discord.Interaction):
     )
     embed.add_field(
         name="/remind [@user] [task]",
-        value = "Bot DMs specified user of a task assigned to them and its deadline",
+        value = "Bot DMs user to remind them of their todo and deadline",
         inline=False
     )
     embed.add_field(
         name="/import [canvas link]",
-        value = "To import assignment deadlines from canvas" +
-                "Bot will send out reminders (3 days?) before the deadline",
+        value = "To import assignment deadlines from Canvas" +
+                "Bot will send out reminder 24 hours before the deadline",
         inline=False
     )
     embed.add_field(
         name="/assignments",
-        value = "To view all (imported) assignments that haven’t passed yet",
+        value = "To view all upcoming (imported) assignments",
         inline=False
     )
     embed.add_field(
-        name="/tasks ([@user])",
-        value = "[@user] - view the incomplete tasks of a specific user\n" +
-                "Otherwise all incomplete tasks will be shown",
+        name="/todos ([@user])",
+        value = "[@user] - view the incomplete to-dos of a specific user\n" +
+                "Otherwise all incomplete to-dos will be shown",
         inline=False
     )
     embed.add_field(
@@ -187,7 +187,7 @@ async def help(interaction: discord.Interaction):
 @bot.tree.command(name="new", description="Creates and assigns a new to-do")
 @discord.app_commands.describe(member="Who will complete to-do",
                                todo="Brief description of to-do",
-                               date="Date in MM-DD-YYYY format")
+                               date="Date in MM-DD format")
 async def create_todo(interaction:discord.Interaction,
                       member: discord.Member,
                       todo: str, date: str):
@@ -196,20 +196,39 @@ async def create_todo(interaction:discord.Interaction,
     '''   
     mocked_date = datetime.date.today() + datetime.timedelta(days=2)
     embed=discord.Embed(
-      title=f'Created new to-do!',
-      description=f'Assigned "{todo}" to {member.mention}, due by {mocked_date}',
+      title=f'Created new to-do: {todo}',
+      description=f'Assigned to {member.mention}, due by {mocked_date}',
       color=0x1DB954)  
-    cur.execute(f"INSERT INTO Todos(Description, Deadline, UserID, GuildID) VALUES ({todo}), ({date}), ({member.id}, {member.guild.id})")
+    query = f"INSERT INTO Todos(Description, Deadline, UserID, GuildID) VALUES ('{todo}', {mocked_date}, {member.id}, {member.guild.id})"
+    print(query)
+    cur.execute(query)
     con.commit()
     await interaction.response.send_message(embed=embed)
 
 @bot.event
 async def on_reaction_add(reaction, user):
-    if reaction.message.author.bot and reaction.message.embeds[0].title =='Created new to-do!':
+    if reaction.message.author.bot and 'Created new to-do' in reaction.message.embeds[0].title:
         if reaction.emoji == '✅':
           # set completed bit to 1 in db
+          # query = f"UPDATE Todos(Description, Deadline, UserID, GuildID) SET Completed = 1 WHERE UserID=user_id AND TodoID=todo_id"
+          # cur.execute(query)
+          # con.commit()
           await reaction.message.channel.send(f'Completed to-do! {reaction.message.embeds[0].description}')
-              
+
+# future: add (optional?) name param
+@bot.tree.command(name="todos", description="Show your incomplete to-dos")
+async def get_todos(interaction: discord.Interaction):
+    '''
+    Bot response to requesting all todos for a user
+    ''' 
+    user_id = interaction.user.id
+    print(user_id)
+    query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user_id} ORDER BY Deadline ASC"
+    print(query)
+    res = cur.execute(query)
+    print(res.fetchall())
+    
+    await interaction.response.send_message("No to-dos!")
 
 # ----- Importing Canvas Assignments -----
 
