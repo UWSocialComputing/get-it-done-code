@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 # imports for getting Canvas assignments
 import requests
 from icalendar import Calendar
-import datetime # might not need this
+import datetime
 from pytz import UTC # timezone - might not need this
 import time
 
@@ -282,9 +282,10 @@ def import_assignments(args):
                     due_date = component.get('dtend').dt
 
                     # start forming assignment page url 
+                    # this is just for UW canvas, but to make it universal we could parse the Canvas calendar URL to get only this part 
                     url = 'https://canvas.uw.edu/courses/'
 
-                    # get the course ID from the assignment's url: split query on course then get link[1], remove underscore, split on & take [0]
+                    # get the course ID from the assignment's url
                     course_id = component.get('url').split('course')[1].split('&')[0].replace('_', '')
                     url += course_id
                     url += '/assignments/'
@@ -303,6 +304,7 @@ def import_assignments(args):
 
 
 # fix this so we can create reminders
+# maybe keep all assignments in the database and do some math on time to get all assignments in the coming week (+ 7 days) for the weekly upcoming overview and send reminders 24hrs in advance of a deadline
 def format_time(due_date):
     '''
     Format assignment due date in the required format for Discord embedded messages
@@ -335,8 +337,8 @@ def format_time(due_date):
 async def import_assignments_request(interaction: discord.Interaction, 
                                      args: str):
     '''
-    Bot request to import assignments from Canvas calendar
-    args should contain Canvas calendar URL and class code 
+    Bot request to import assignments from Canvas calendar.
+    args should contain Canvas calendar URL and class code. 
     EX: /import https://canvas.uw.edu/... cse481p
     '''
     assignments = import_assignments(args)
@@ -344,6 +346,7 @@ async def import_assignments_request(interaction: discord.Interaction,
     await print_import_assignments_request_response(interaction, assignments, class_code)
 
 
+# right now the class code has no spaces and is .lower() like cse481p - maybe find a way to keep how the user entered the class code like CSE 481 P or CSE 481P
 async def print_import_assignments_request_response(interaction: discord.Interaction, 
                                                     assignments_list: list, class_code: str):
     '''
@@ -369,6 +372,8 @@ async def get_assignments_request(interaction: discord.Interaction):
         await interaction.channel.send('No assignments')
 
 
+# rn we are showing the assignment ID but it could also just be used internally. not sure if we should keep this so we can refer to assignments in future functions? 
+# want to show the relative time deadline in the timestamp of the embed, but there's an issue with the datetime object we're passing through - could just be how canvas datetime formatted differently than how datetime is expected as an argument 
 async def print_get_assignments_request_response(interaction: discord.Interaction, 
                                                  assignments: list):
     '''
@@ -385,7 +390,7 @@ async def print_get_assignments_request_response(interaction: discord.Interactio
             url=f'{assgn.get_url()}')
         embed.set_footer(text=f'{assgn.get_uid()}')
         await interaction.channel.send(embed=embed)
-        time.sleep(1)
+        time.sleep(2)
 
 
 bot.run(TOKEN)
