@@ -185,31 +185,29 @@ async def help(interaction: discord.Interaction):
 
 # commands.greedy if we eventually want to allow multiple users
 @bot.tree.command(name="new", description="Creates and assigns a new to-do")
-# @discord.app_commands.describe(name="Who will complete to-do",
-#                                todo="Brief description of to-do",
-#                                date="Date in MM-DD-YYYY format")
+@discord.app_commands.describe(member="Who will complete to-do",
+                               todo="Brief description of to-do",
+                               date="Date in MM-DD-YYYY format")
 async def create_todo(interaction:discord.Interaction,
                       member: discord.Member,
                       todo: str, date: str):
     '''
     Bot response to creating and assigning new todo; updates database
     '''   
-    # can't mention users in embed titles?
-    # mock date for now
     mocked_date = datetime.date.today() + datetime.timedelta(days=2)
     embed=discord.Embed(
       title=f'Created new to-do!',
       description=f'Assigned "{todo}" to {member.mention}, due by {mocked_date}',
       color=0x1DB954)  
-    # cur.execute(f"INSERT INTO Todos VALUES ({todo})({date})({member.id})")
-    # con.commit()
+    cur.execute(f"INSERT INTO Todos(Description, Deadline, UserID, GuildID) VALUES ({todo}), ({date}), ({member.id}, {member.guild.id})")
+    con.commit()
     await interaction.response.send_message(embed=embed)
-    # await interaction.response.send_message("Assigned " + todo + " to " + user.mention + " due by " + date)
 
 @bot.event
 async def on_reaction_add(reaction, user):
     if reaction.message.author.bot and reaction.message.embeds[0].title =='Created new to-do!':
         if reaction.emoji == '✅':
+          # set completed bit to 1 in db
           await reaction.message.channel.send(f'Completed to-do! {reaction.message.embeds[0].description}')
               
 
