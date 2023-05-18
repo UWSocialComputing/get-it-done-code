@@ -105,8 +105,13 @@ async def intro_setup(interaction: discord.Interaction):
         inline=False
     )
     embed.add_field(
-        name="/import [canvas link]",
+        name="/import [canvas link] [class code]",
         value = "📝 Import all assignments from a Canvas calendar feed link",
+        inline=False
+    )
+    embed.add_field(
+        name="/help",
+        value = "To view all commands in detail",
         inline=False
     )
     await interaction.followup.send(embed=embed)
@@ -158,9 +163,10 @@ async def help(interaction: discord.Interaction):
         inline=False
     )
     embed.add_field(
-        name="/import [canvas link]",
-        value = "To import assignment deadlines from Canvas" +
-                "Bot will send out reminder 24 hours before the deadline",
+        name="/import [canvas link] [class code]",
+        value = "To import assignment deadlines from Canvas \n" +
+                "Bot will send out reminder 24 hours before the deadline \n" +
+                "Ex: /import https://canvas.uw.edu/feeds/calendars/user_qkZr6adOTXT0f39gFbhD5WxQXVyLliTHGaHkcE4d.ics cse481p",
         inline=False
     )
     embed.add_field(
@@ -174,11 +180,6 @@ async def help(interaction: discord.Interaction):
         #         "Otherwise all incomplete to-dos will be shown",
         name="/todos",
         value = "View your incomplete to-dos",
-        inline=False
-    )
-    embed.add_field(
-        name="/help",
-        value = "To view all commands",
         inline=False
     )
     await interaction.response.send_message(embed=embed)
@@ -195,13 +196,13 @@ async def create_todo(interaction:discord.Interaction,
                       todo: str, date: str):
     '''
     Bot response to creating and assigning new todo; updates database
-    '''   
+    '''
     mocked_date = datetime.date.today() + datetime.timedelta(days=2)
     embed=discord.Embed(
       title=f'Created new to-do: {todo}',
       description=f'Assigned to {member.mention}, due by {mocked_date}\n' +
                   'React with ✅ if complete',
-      color=0x1DB954)  
+      color=0x1DB954)
     sql_date = mocked_date.strftime('%Y-%m-%d %H:%M:%S')
     print(sql_date)
     query = f"INSERT INTO Todos(Description, Deadline, UserID, GuildID) VALUES ('{todo}', {mocked_date}, {member.id}, {member.guild.id})"
@@ -213,7 +214,7 @@ async def create_todo(interaction:discord.Interaction,
     # wait for reaction to mark complete
     def check(reaction, user):
         return str(reaction.emoji) == '✅'
-    
+
     await bot.wait_for("reaction_add", check=check)
     # set completed bit to 1 in db; eventually use taskid
     query = f"UPDATE Todos SET Completed = 1 WHERE UserID={member.id} AND Description='{todo}'"
@@ -225,7 +226,7 @@ async def create_todo(interaction:discord.Interaction,
 async def get_todos(interaction: discord.Interaction):
     '''
     Clears all user tasks (for testing)
-    ''' 
+    '''
     user_id = interaction.user.id
     query = f"DELETE FROM Todos WHERE UserID={user_id}"
     cur.execute(query)
@@ -247,7 +248,7 @@ async def get_todos(interaction: discord.Interaction):
 async def get_todos(interaction: discord.Interaction):
     '''
     Bot response to requesting all todos for a user
-    ''' 
+    '''
     user_id = interaction.user.id
     query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user_id} ORDER BY Deadline ASC"
     print(query)
@@ -259,7 +260,7 @@ async def get_todos(interaction: discord.Interaction):
     embed=discord.Embed(
       title=f'Your To-Dos:',
       color=0xf1c40f)
-    
+
     for row in cur.execute(query):
         embed.add_field(
           name=row[1],
