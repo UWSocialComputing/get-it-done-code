@@ -3,14 +3,13 @@
 import discord
 import os
 import sqlite3
-# from discord import app_commmands
 from discord.ext import commands
 from dotenv import load_dotenv
 
 # imports for getting Canvas assignments
 import requests
 from icalendar import Calendar
-from datetime import datetime
+import datetime
 from pytz import UTC # timezone - might not need this
 import time
 
@@ -182,28 +181,37 @@ async def help(interaction: discord.Interaction):
     )
     await interaction.response.send_message(embed=embed)
 
+# ----- To-Dos ------------
+
 # commands.greedy if we eventually want to allow multiple users
-@bot.tree.command(name="new", description="Creating and assigning a new to-do")
+@bot.tree.command(name="new", description="Creates and assigns a new to-do")
+# @discord.app_commands.describe(name="Who will complete to-do",
+#                                todo="Brief description of to-do",
+#                                date="Date in MM-DD-YYYY format")
 async def create_todo(interaction:discord.Interaction,
-                      user: discord.Member,
-                      todo: str,
-                      date: int):
+                      member: discord.Member,
+                      todo: str, date: str):
     '''
     Bot response to creating and assigning new todo; updates database
-    '''
-    # query_put = "INSERT"
-    
+    '''   
     # can't mention users in embed titles?
+    # mock date for now
+    mocked_date = datetime.date.today() + datetime.timedelta(days=2)
     embed=discord.Embed(
-      title=f'Created new todo!',
-      description=f'Assigned "{todo}" to {user.mention}, due by {date}',
+      title=f'Created new to-do!',
+      description=f'Assigned "{todo}" to {member.mention}, due by {mocked_date}',
       color=0x1DB954)  
-    # cur.execute(query_put)
+    # cur.execute(f"INSERT INTO Todos VALUES ({todo})({date})({member.id})")
     # con.commit()
     await interaction.response.send_message(embed=embed)
     # await interaction.response.send_message("Assigned " + todo + " to " + user.mention + " due by " + date)
-    
 
+@bot.event
+async def on_reaction_add(reaction, user):
+    if reaction.message.author.bot and reaction.message.embeds[0].title =='Created new to-do!':
+        if reaction.emoji == '✅':
+          await reaction.message.channel.send(f'Completed to-do! {reaction.message.embeds[0].description}')
+              
 
 # ----- Importing Canvas Assignments -----
 
