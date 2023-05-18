@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 # imports for getting Canvas assignments
 import requests
 from icalendar import Calendar
-import datetime
+from datetime import datetime
 from pytz import UTC # timezone - might not need this
 import time
 
@@ -182,6 +182,27 @@ async def help(interaction: discord.Interaction):
     )
     await interaction.response.send_message(embed=embed)
 
+# commands.greedy if we eventually want to allow multiple users
+@bot.tree.command(name="new", description="Creating and assigning a new to-do")
+async def create_todo(interaction:discord.Interaction,
+                      user: discord.Member,
+                      todo: str,
+                      date: int):
+    '''
+    Bot response to creating and assigning new todo; updates database
+    '''
+    # query_put = "INSERT"
+    
+    # can't mention users in embed titles?
+    embed=discord.Embed(
+      title=f'Created new todo!',
+      description=f'Assigned "{todo}" to {user.mention}, due by {date}',
+      color=0x1DB954)  
+    # cur.execute(query_put)
+    # con.commit()
+    await interaction.response.send_message(embed=embed)
+    # await interaction.response.send_message("Assigned " + todo + " to " + user.mention + " due by " + date)
+    
 
 
 # ----- Importing Canvas Assignments -----
