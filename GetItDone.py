@@ -17,10 +17,10 @@ import time
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-# con = sqlite3.conntect("database.db")
+con = sqlite3.connect("data.db")
+cur = con.cursor()
 
-intents = discord.Intents.default()
-intents.message_content = True
+intents = discord.Intents.all()
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
@@ -40,6 +40,34 @@ async def on_message(message):
 
     if message.content.startswith('.'):
         await message.channel.send('Hello!')
+
+@bot.event
+async def on_guild_join(guild):
+    # Update database
+    member_ids = [member.id for member in guild.members if not member.bot]
+    query_u = "INSERT OR IGNORE INTO Users VALUES "
+    query_ug = "INSERT OR IGNORE INTO UserGuild VALUES "
+    for i, mid in enumerate(member_ids):
+        print(mid)
+        query_u += f"({mid})"
+        query_ug += f"({mid},{guild.id})"
+        if i < len(member_ids) - 1:
+            query_u += ","
+            query_ug += ","
+    print(query_u)
+    print(query_ug)
+    cur.execute(f"INSERT OR IGNORE INTO Guilds VALUES ({guild.id})")
+    cur.execute(query_u)
+    cur.execute(query_ug)
+    con.commit()
+    # End update database
+
+@bot.event
+async def on_member_join(member):
+    print(member.name)
+    cur.execute(f"INSERT OR IGNORE INTO Users VALUES ({member.id})")
+    cur.execute(f"INSERT OR IGNORE INTO UserGuild VALUES ({member.id},{member.guild.id})")
+    con.commit()
 
 @bot.tree.command(name="setup")
 async def intro_setup(interaction: discord.Interaction):
