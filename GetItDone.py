@@ -111,23 +111,6 @@ async def intro_setup(interaction: discord.Interaction):
         inline=False
     )
     await interaction.followup.send(embed=embed)
-    # await interaction.followup.send(
-    #     "👋 Welcome to **Get It Done**!\n"
-    #     "This bot organizes group work for teams to work more efficiently and effectively.\n"
-    #     "Some commands you should know:\n\n"
-
-    #     "**/new [@user] [task] [date]**\n"
-    #     "🏷️ Assign a new **[task]** to a **[user]**, due by **[date]**\n\n"
-
-    #     "**/remind [@user] [task]**\n"
-    #     "🔔 Anonymously remind a **[user]** of their **[task]** that’s due soon\n"
-
-    #     "**/import [canvas link] [class code]**\n"
-    #     "📝 Import all assignments from a Canvas calendar feed link\n\n"
-
-    #     "/help\n"
-    #     "🔍 View all commands"
-    # )
 
 # A temp command to undo changes made by intro_setup()
 @bot.tree.command(name="undo")
@@ -244,7 +227,7 @@ class Assignment:
 
 
 # global variables, since they will be referred to in any context
-assignments = [] # will have to store these in the database so we can refer back to them 
+assignments = [] # will have to store these in the database so we can refer back to them
 class_code = ''
 
 
@@ -262,10 +245,10 @@ def get_class_code(all_args):
     '''
     class_code = ''
     all_args = all_args.split(' ')
-    
+
     for i in range(1, len(all_args)):
         class_code += all_args[i].lower()
-    
+
     return class_code
 
 
@@ -302,15 +285,15 @@ def import_assignments(args):
 
                 # detect if class code of assignment matches the class code of the user's request
                 if class_code in title_and_classcode:
-                    # get title w/o class code 
+                    # get title w/o class code
                     title_arr = title.split(' [')
                     title = title_arr[0]
 
                     # get due date as a datetime object
                     due_date = component.get('dtend').dt
 
-                    # start forming assignment page url 
-                    # this is just for UW canvas, but to make it universal we could parse the Canvas calendar URL to get only this part 
+                    # start forming assignment page url
+                    # this is just for UW canvas, but to make it universal we could parse the Canvas calendar URL to get only this part
                     url = 'https://canvas.uw.edu/courses/'
 
                     # get the course ID from the assignment's url
@@ -318,10 +301,10 @@ def import_assignments(args):
                     url += course_id
                     url += '/assignments/'
 
-                    # make id to just be a number 
+                    # make id to just be a number
                     uid = uid.split('-')[-1]
-                    
-                    # add assignment id to complete canvas assignment url 
+
+                    # add assignment id to complete canvas assignment url
                     url += uid
 
                     # create a new assignment and add it to the list of assignments
@@ -336,7 +319,7 @@ def import_assignments(args):
 def format_time(due_date):
     '''
     Format assignment due date in the required format for Discord embedded messages
-    * doesn't work rn 
+    * doesn't work rn
     '''
     # in canvas: 20230606T183000Z
     # need: 2023-06-06T18:00:00.000Z
@@ -362,11 +345,11 @@ def format_time(due_date):
 
 # maybe rename args so it's helpful for the user when using the command
 @bot.tree.command(name="import")
-async def import_assignments_request(interaction: discord.Interaction, 
+async def import_assignments_request(interaction: discord.Interaction,
                                      args: str):
     '''
     Bot request to import assignments from Canvas calendar.
-    args should contain Canvas calendar URL and class code. 
+    args should contain Canvas calendar URL and class code.
     EX: /import https://canvas.uw.edu/... cse481p
     '''
     assignments = import_assignments(args)
@@ -375,7 +358,7 @@ async def import_assignments_request(interaction: discord.Interaction,
 
 
 # right now the class code has no spaces and is .lower() like cse481p - maybe find a way to keep how the user entered the class code like CSE 481 P or CSE 481P
-async def print_import_assignments_request_response(interaction: discord.Interaction, 
+async def print_import_assignments_request_response(interaction: discord.Interaction,
                                                     assignments_list: list, class_code: str):
     '''
     Bot response to print success message after importing assignments
@@ -383,7 +366,7 @@ async def print_import_assignments_request_response(interaction: discord.Interac
     embed=discord.Embed(
         title=f'Success! Imported {len(assignments_list)} assignments from {class_code}',
         description='Use /assignments to view all assignments.',
-        color=0x1DB954)  
+        color=0x1DB954)
     await interaction.channel.send(embed=embed)
 
 
@@ -393,32 +376,46 @@ async def get_assignments_request(interaction: discord.Interaction):
     Bot request to get a list of all assignments
     '''
     # assignments = import_assignments()
-    # will have to refer back to the database for list of assignments 
+    # will have to refer back to the database for list of assignments
     if len(assignments) > 0:
         await print_get_assignments_request_response(interaction, assignments)
-    else: 
+    else:
         await interaction.channel.send('No assignments')
 
 
-# rn we are showing the assignment ID but it could also just be used internally. not sure if we should keep this so we can refer to assignments in future functions? 
-# want to show the relative time deadline in the timestamp of the embed, but there's an issue with the datetime object we're passing through - could just be how canvas datetime formatted differently than how datetime is expected as an argument 
-async def print_get_assignments_request_response(interaction: discord.Interaction, 
+# rn we are showing the assignment ID but it could also just be used internally. not sure if we should keep this so we can refer to assignments in future functions?
+# want to show the relative time deadline in the timestamp of the embed, but there's an issue with the datetime object we're passing through - could just be how canvas datetime formatted differently than how datetime is expected as an argument
+async def print_get_assignments_request_response(interaction: discord.Interaction,
                                                  assignments: list):
     '''
     Bot response that loops through assignment list and sends individual messages with embedded assignments
     If we have time it would be cool to change the color associated with each assignment as it's finished?
     '''
-    for assgn in assignments:
-        embed = discord.Embed(
+    # for assgn in assignments:
+    #     embed = discord.Embed(
+    #         type='rich',
+    #         title=f'{assgn.get_title()}',
+    #         color=0xFF5733,
+    #         # timestamp={format_time(assgn.get_due_date())},
+    #         # error: TypeError: Expected datetime.datetime or None received set instead
+    #         url=f'{assgn.get_url()}')
+    #     embed.set_footer(text=f'{assgn.get_uid()}')
+    #     await interaction.channel.send(embed=embed)
+    #     time.sleep(2)
+
+    embed = discord.Embed(
             type='rich',
-            title=f'{assgn.get_title()}',
+            title=f'{class_code}',
             color=0xFF5733,
-            # timestamp={format_time(assgn.get_due_date())},
-            # error: TypeError: Expected datetime.datetime or None received set instead
-            url=f'{assgn.get_url()}')
-        embed.set_footer(text=f'{assgn.get_uid()}')
-        await interaction.channel.send(embed=embed)
-        time.sleep(2)
+    )
+    for assgn in assignments:
+        embed.add_field(
+            name=f'{assgn.get_title()}',
+            value=f'Due Date: {format_time(assgn.get_due_date())} \n [Link]({assgn.get_url()})',
+            inline=False
+        )
+    await interaction.channel.send(embed=embed)
+    time.sleep(2)
 
 
 bot.run(TOKEN)
