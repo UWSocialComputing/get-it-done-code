@@ -169,9 +169,11 @@ async def help(interaction: discord.Interaction):
         inline=False
     )
     embed.add_field(
-        name="/todos ([@user])",
-        value = "[@user] - view the incomplete to-dos of a specific user\n" +
-                "Otherwise all incomplete to-dos will be shown",
+        # name="/todos ([@user])",
+        # value = "[@user] - view the incomplete to-dos of a specific user\n" +
+        #         "Otherwise all incomplete to-dos will be shown",
+        name="/todos",
+        value = "View your incomplete to-dos",
         inline=False
     )
     embed.add_field(
@@ -199,21 +201,35 @@ async def create_todo(interaction:discord.Interaction,
       title=f'Created new to-do: {todo}',
       description=f'Assigned to {member.mention}, due by {mocked_date}',
       color=0x1DB954)  
+    sql_date = mocked_date.strftime('%Y-%m-%d %H:%M:%S')
+    print(sql_date)
     query = f"INSERT INTO Todos(Description, Deadline, UserID, GuildID) VALUES ('{todo}', {mocked_date}, {member.id}, {member.guild.id})"
     print(query)
     cur.execute(query)
     con.commit()
     await interaction.response.send_message(embed=embed)
 
-@bot.event
-async def on_reaction_add(reaction, user):
-    if reaction.message.author.bot and 'Created new to-do' in reaction.message.embeds[0].title:
-        if reaction.emoji == '✅':
-          # set completed bit to 1 in db
-          # query = f"UPDATE Todos(Description, Deadline, UserID, GuildID) SET Completed = 1 WHERE UserID=user_id AND TodoID=todo_id"
-          # cur.execute(query)
-          # con.commit()
-          await reaction.message.channel.send(f'Completed to-do! {reaction.message.embeds[0].description}')
+    # waiting to mark complete
+    def check(reaction, user):
+        return str(reaction.emoji) == '✅'
+    
+    reaction = await bot.wait_for("reaction_add", check=check)  # Wait for a reaction
+    print(reaction)
+    # set completed bit to 1 in db; eventually use taskid
+    query = f"UPDATE Todos SET Completed = 1 WHERE UserID={member.id} AND Description='{todo}'"
+    cur.execute(query)
+    con.commit()
+    await interaction.followup.send(f'Completed to-do "{todo}!"')
+
+# @bot.event
+# async def on_reaction_add(reaction, user):
+#     if reaction.message.author.bot and 'Created new to-do' in reaction.message.embeds[0].title:
+#         if reaction.emoji == '✅':
+#           # set completed bit to 1 in db
+#           # query = f"UPDATE Todos(Description, Deadline, UserID, GuildID) SET Completed = 1 WHERE UserID=user_id AND TodoID=todo_id"
+#           # cur.execute(query)
+#           # con.commit()
+#           await reaction.message.channel.send(f'Completed to-do! {reaction.message.embeds[0].description}')
 
 # future: add (optional?) name param
 @bot.tree.command(name="todos", description="Show your incomplete to-dos")
@@ -222,11 +238,8 @@ async def get_todos(interaction: discord.Interaction):
     Bot response to requesting all todos for a user
     ''' 
     user_id = interaction.user.id
-    print(user_id)
     query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user_id} ORDER BY Deadline ASC"
     print(query)
-    # res = cur.execute(query)
-    # print(res.fetchall())
 
     for row in cur.execute(query):
         print(row[1])
@@ -239,7 +252,7 @@ async def get_todos(interaction: discord.Interaction):
     for row in cur.execute(query):
         embed.add_field(
           name=row[1],
-          value='due by ' + str(row[2]),
+          value='Due by ' + str(row[2]),
           inline=False
     )
     await interaction.response.send_message(embed=embed)
