@@ -405,7 +405,7 @@ async def print_get_assignments_request_response(interaction: discord.Interactio
 
     embed = discord.Embed(
             type='rich',
-            title=f'{class_code}',
+            title="All Assignments",
             color=0xFF5733,
     )
     for assgn in assignments:
