@@ -225,10 +225,24 @@ async def get_todos(interaction: discord.Interaction):
     print(user_id)
     query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user_id} ORDER BY Deadline ASC"
     print(query)
-    res = cur.execute(query)
-    print(res.fetchall())
+    # res = cur.execute(query)
+    # print(res.fetchall())
+
+    for row in cur.execute(query):
+        print(row[1])
+        print(row[2])
+
+    embed=discord.Embed(
+      title=f'Your To-Dos:',
+      color=0xf1c40f)
     
-    await interaction.response.send_message("No to-dos!")
+    for row in cur.execute(query):
+        embed.add_field(
+          name=row[1],
+          value='due by ' + str(row[2]),
+          inline=False
+    )
+    await interaction.response.send_message(embed=embed)
 
 # ----- Importing Canvas Assignments -----
 
