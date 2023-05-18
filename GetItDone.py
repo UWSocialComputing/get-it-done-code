@@ -199,7 +199,8 @@ async def create_todo(interaction:discord.Interaction,
     mocked_date = datetime.date.today() + datetime.timedelta(days=2)
     embed=discord.Embed(
       title=f'Created new to-do: {todo}',
-      description=f'Assigned to {member.mention}, due by {mocked_date}',
+      description=f'Assigned to {member.mention}, due by {mocked_date}\n' +
+                  'React with ✅ if complete',
       color=0x1DB954)  
     sql_date = mocked_date.strftime('%Y-%m-%d %H:%M:%S')
     print(sql_date)
@@ -226,7 +227,7 @@ async def get_todos(interaction: discord.Interaction):
     Clears all user tasks (for testing)
     ''' 
     user_id = interaction.user.id
-    query = f"DELETE * FROM Todos WHERE UserID={user_id}"
+    query = f"DELETE FROM Todos WHERE UserID={user_id}"
     cur.execute(query)
     con.commit()
     await interaction.response.send_message('deleted')
