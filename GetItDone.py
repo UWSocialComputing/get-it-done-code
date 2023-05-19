@@ -91,7 +91,7 @@ async def intro_setup(interaction: discord.Interaction):
     embed = discord.Embed(
         title="👋 Welcome to Get It Done!",
         description="This bot organizes group work for teams to work more efficiently and effectively.\n"+
-                    "Some commands you should know in addition to /help:",
+                    "Some commands you should know:",
         colour=discord.Colour.dark_green()
     )
     embed.add_field(
