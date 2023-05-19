@@ -91,17 +91,17 @@ async def intro_setup(interaction: discord.Interaction):
     embed = discord.Embed(
         title="👋 Welcome to Get It Done!",
         description="This bot organizes group work for teams to work more efficiently and effectively.\n"+
-                    "Some commands you should know:",
+                    "Some commands you should know in addition to /help:",
         colour=discord.Colour.dark_green()
     )
     embed.add_field(
-        name="/new [@user] [task] [date]",
-        value = "🏷️ Assign a new [task] to a [user], due by [date]",
+        name="/new [@user] [to-do] [date]",
+        value = "🏷️ Assign a new [to-do] to a [user], due by [date]",
         inline=False
     )
     embed.add_field(
-        name="/remind [@user] [task]",
-        value = "🔔 Anonymously remind a [user] of their [task] that’s due soon",
+        name="/remind [@user] [to-do]",
+        value = "🔔 Anonymously remind a [user] of their [to-do] that’s due soon",
         inline=False
     )
     embed.add_field(
@@ -149,17 +149,17 @@ async def help(interaction: discord.Interaction):
         colour=discord.Colour.dark_green()
     )
     embed.add_field(
-        name="/new [@user] [task] [date]",
-        value = "[@user] - assign the task to\n" +
-                "[task] - the task\n" +
-                "[date] - the date to complete the task by, format: mm/dd/yy\n" +
+        name="/new [@user] [to-do] [date]",
+        value = "[@user] - assign the to-do to\n" +
+                "[to-do] - the to-do\n" +
+                "[date] - the date to complete the to-do by, format: mm/dd/yy\n" +
                 "Bot sends out a 24-hr reminder before deadline\n" +
                 "React to the bot message to mark complete \n\n",
         inline=False
     )
     embed.add_field(
-        name="/remind [@user] [task]",
-        value = "Bot DMs user to remind them of their todo and deadline",
+        name="/remind [@user] [to-do]",
+        value = "Bot DMs user to remind them of their to-do and deadline",
         inline=False
     )
     embed.add_field(
@@ -175,10 +175,10 @@ async def help(interaction: discord.Interaction):
         inline=False
     )
     embed.add_field(
-        # name="/todos ([@user])",
+        # name="/to-dos ([@user])",
         # value = "[@user] - view the incomplete to-dos of a specific user\n" +
         #         "Otherwise all incomplete to-dos will be shown",
-        name="/todos",
+        name="/to-dos",
         value = "View your incomplete to-dos",
         inline=False
     )
@@ -188,24 +188,24 @@ async def help(interaction: discord.Interaction):
 
 # commands.greedy if we eventually want to allow multiple users
 @bot.tree.command(name="new", description="Creates and assigns a new to-do")
-@discord.app_commands.describe(member="Who will complete to-do",
+@discord.app_commands.describe(user="Who will complete to-do",
                                todo="Brief description of to-do",
                                date="Date in MM-DD format")
 async def create_todo(interaction:discord.Interaction,
-                      member: discord.Member,
+                      user: discord.Member,
                       todo: str, date: str):
     '''
-    Bot response to creating and assigning new todo; updates database
-    '''
+    Bot response to creating and assigning new to-do; updates database
+    '''   
     mocked_date = datetime.date.today() + datetime.timedelta(days=2)
     embed=discord.Embed(
       title=f'Created new to-do: {todo}',
-      description=f'Assigned to {member.mention}, due by {mocked_date}\n' +
+      description=f'Assigned to {user.mention}, due by {mocked_date}\n' +
                   'React with ✅ if complete',
       color=0x1DB954)
     sql_date = mocked_date.strftime('%Y-%m-%d %H:%M:%S')
     print(sql_date)
-    query = f"INSERT INTO Todos(Description, Deadline, UserID, GuildID) VALUES ('{todo}', {mocked_date}, {member.id}, {member.guild.id})"
+    query = f"INSERT INTO Todos(Description, Deadline, UserID, GuildID) VALUES ('{todo}', {mocked_date}, {user.id}, {user.guild.id})"
     print(query)
     cur.execute(query)
     con.commit()
@@ -220,35 +220,25 @@ async def create_todo(interaction:discord.Interaction,
     query = f"UPDATE Todos SET Completed = 1 WHERE UserID={member.id} AND Description='{todo}'"
     cur.execute(query)
     con.commit()
-    await interaction.followup.send(f'Completed to-do "{todo}!"')
+    await interaction.followup.send(f'Completed to-do "{to-do}!"')
 
 @bot.tree.command(name="clear", description="clear")
 async def get_todos(interaction: discord.Interaction):
     '''
-    Clears all user tasks (for testing)
-    '''
+    Clears all user to-dos (for testing)
+    ''' 
     user_id = interaction.user.id
     query = f"DELETE FROM Todos WHERE UserID={user_id}"
     cur.execute(query)
     con.commit()
     await interaction.response.send_message('deleted')
 
-# @bot.event
-# async def on_reaction_add(reaction, user):
-#     if reaction.message.author.bot and 'Created new to-do' in reaction.message.embeds[0].title:
-#         if reaction.emoji == '✅':
-#           # set completed bit to 1 in db
-#           # query = f"UPDATE Todos(Description, Deadline, UserID, GuildID) SET Completed = 1 WHERE UserID=user_id AND TodoID=todo_id"
-#           # cur.execute(query)
-#           # con.commit()
-#           await reaction.message.channel.send(f'Completed to-do! {reaction.message.embeds[0].description}')
-
 # future: add (optional?) name param
-@bot.tree.command(name="todos", description="Show your incomplete to-dos")
+@bot.tree.command(name="to-dos", description="Show your incomplete to-dos")
 async def get_todos(interaction: discord.Interaction):
     '''
-    Bot response to requesting all todos for a user
-    '''
+    Bot response to requesting all to-dos for a user
+    ''' 
     user_id = interaction.user.id
     query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user_id} ORDER BY Deadline ASC"
     print(query)
