@@ -5,11 +5,8 @@ import os
 import sqlite3
 from discord.ext import commands
 from dotenv import load_dotenv
-<<<<<<< HEAD
-=======
 from typing import Optional
 import dateparser
->>>>>>> e63ad31 (parse inputted dates and print with todos)
 
 # imports for getting Canvas assignments
 import requests
