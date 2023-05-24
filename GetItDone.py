@@ -5,6 +5,11 @@ import os
 import sqlite3
 from discord.ext import commands
 from dotenv import load_dotenv
+<<<<<<< HEAD
+=======
+from typing import Optional
+import dateparser
+>>>>>>> e63ad31 (parse inputted dates and print with todos)
 
 # imports for getting Canvas assignments
 import requests
@@ -191,36 +196,55 @@ async def help(interaction: discord.Interaction):
 
 # commands.greedy if we eventually want to allow multiple users
 @bot.tree.command(name="new", description="Creates and assigns a new to-do")
-@discord.app_commands.describe(member="Who will complete to-do",
-                               todo="Brief description of to-do",
-                               date="Date in MM-DD format")
-async def create_todo(interaction:discord.Interaction,
-                      member: discord.Member,
-                      todo: str, date: str):
-    '''
-    Bot response to creating and assigning new todo; updates database
-    '''
-    mocked_date = datetime.date.today() + datetime.timedelta(days=2)
-    embed=discord.Embed(
-      title=f'Created new to-do: {todo}',
-      description=f'Assigned to {member.mention}, due by {mocked_date}\n' +
-                  'React with ✅ if complete',
-      color=0x1DB954)
-    sql_date = mocked_date.strftime('%Y-%m-%d %H:%M:%S')
+@discord.app_commands.describe(
+    user="Who will complete to-do",
+    todo="Brief description of to-do",
+    date="Due date in MM-DD format",
+    time="Defaults to 11:59 PM"
+)
+async def create_todo(
+    interaction: discord.Interaction,
+    user: discord.Member,
+    todo: str,
+    date: str,
+    time: Optional[str],
+):
+    """
+    Bot response to creating and assigning new to-do; updates database
+    """
+    if time is None:
+        # include space for parser
+        time = " 11:59 PM"
+    else:
+        time = " " + time
+    
+    duedate = date + time
+    duedatetime = dateparser.parse(duedate)
+    print(duedatetime)
+    duedatetime_format = duedatetime.strftime("%m/%d %I:%M%p")
+
+    embed = discord.Embed(
+        title=f"Created new to-do: {todo}",
+        description=f"Assigned to {user.mention}\n"
+        + "Due {duedatetime_format}\n"
+        + "React with ✅ if complete",
+        color=0x1DB954,
+    )
+    sql_date = duedatetime.strftime("%Y-%m-%d %H:%M:%S")
     print(sql_date)
-    query = f"INSERT INTO Todos(Description, Deadline, UserID, GuildID) VALUES ('{todo}', {mocked_date}, {member.id}, {member.guild.id})"
+    query = f"INSERT INTO Todos(Description, Deadline, UserID, GuildID) VALUES ('{todo}', '{sql_date}', {user.id}, {user.guild.id})"
     print(query)
-    cur.execute(query)
+    cur.execute(f"INSERT INTO Todos(Description, Deadline, UserID, GuildID) VALUES ('{todo}', '{sql_date}', {user.id}, {user.guild.id})")
     con.commit()
     await interaction.response.send_message(embed=embed)
 
     # wait for reaction to mark complete
-    def check(reaction, user):
-        return str(reaction.emoji) == '✅'
+    def check(reaction):
+        return str(reaction.emoji) == "✅"
 
     await bot.wait_for("reaction_add", check=check)
     # set completed bit to 1 in db; eventually use taskid
-    query = f"UPDATE Todos SET Completed = 1 WHERE UserID={member.id} AND Description='{todo}'"
+    query = f"UPDATE Todos SET Completed = 1 WHERE UserID={user.id} AND Description='{todo}'"
     cur.execute(query)
     con.commit()
     await interaction.followup.send(f'Completed to-do "{todo}!"')
@@ -246,13 +270,17 @@ async def get_todos(interaction: discord.Interaction):
 #           # con.commit()
 #           await reaction.message.channel.send(f'Completed to-do! {reaction.message.embeds[0].description}')
 
-# future: add (optional?) name param
-@bot.tree.command(name="todos", description="Show your incomplete to-dos")
-async def get_todos(interaction: discord.Interaction):
-    '''
-    Bot response to requesting all todos for a user
-    '''
-    user_id = interaction.user.id
+@bot.tree.command(name="to-dos", description="Show your incomplete to-dos")
+@discord.app_commands.describe(user="Whose to-dos to view, defaults to you")
+async def get_todos(interaction: discord.Interaction,
+                    user: Optional[discord.Member]):
+    """
+    Bot response to requesting all to-dos for a user
+    """
+    if user is not None:
+        user_id = user.id
+    else:
+        user_id = interaction.user.id
     query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user_id} ORDER BY Deadline ASC"
     print(query)
 
@@ -265,11 +293,14 @@ async def get_todos(interaction: discord.Interaction):
       color=0xf1c40f)
 
     for row in cur.execute(query):
-        embed.add_field(
-          name=row[1],
-          value='Due by ' + str(row[2]),
-          inline=False
-    )
+        i += 1
+        date = dateparser.parse(str(row[2]))
+        embed.add_field(name=row[1], value="Due " +
+                        date.strftime("%m/%d %I:%M%p"),
+                        inline=False)
+
+    if i == 0:
+        embed.description = f"No to-dos!"
     await interaction.response.send_message(embed=embed)
 
 # ----- Importing Canvas Assignments -----
