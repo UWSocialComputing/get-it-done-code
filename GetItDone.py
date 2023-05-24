@@ -14,6 +14,9 @@ import datetime
 from pytz import UTC  # timezone - might not need this
 import time
 
+# for reminders
+from asyncio import sleep as s
+
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -524,5 +527,69 @@ async def print_get_assignments_request_response(
     await interaction.channel.send(embed=embed)
     time.sleep(2)
 
+
+# ------------------ reminders --------------------------
+# channel_id = 1098434582673629296
+
+# #Message 1
+# @tasks.loop(seconds=5)
+# async def called_once_a_day():
+#   message_channel = bot.get_channel(channel_id)
+#   await message_channel.send("test 1")
+
+# @called_once_a_day.before_loop
+# async def before():
+#     await bot.wait_until_ready()
+#     print("Finished waiting")
+# #Message 2
+# @tasks.loop(seconds=10)
+# async def called_once_a_day2():
+#     message_channel = bot.get_channel(channel_id)
+#     await message_channel.send("test 2")
+
+# @called_once_a_day2.before_loop
+# async def before():
+#     await bot.wait_until_ready()
+#     print("Finished waiting")
+
+
+# called_once_a_day.start()
+# called_once_a_day2.start()
+
+# @bot.event
+# async def on_ready():
+#     print("Logged in as")
+#     print(bot.user.name)
+#     print("------")
+#     msg1.start()
+
+
+# # Message 1
+# @tasks.loop(hours=24)
+# async def msg1():
+#     message_channel = bot.get_channel(1098434582673629296)
+#     await message_channel.send("test 1")
+
+
+# @msg1.before_loop
+# async def before_msg1():
+#     for _ in range(60*60*24):  # loop the whole day
+#         if datetime.datetime.now().hour == 10+12:  # 24 hour format
+#             print('It is time')
+#             return
+#         await asyncio.sleep(1)# wait a second before looping again. You can make it more
+
+
+@bot.tree.command(name="remind")
+@discord.app_commands.describe(user="Who to remind",
+                               msg="msg to send")
+async def remind(interaction: discord.Interaction, user: discord.Member, msg: str):
+    embed=discord.Embed(
+        title="Reminder!",
+        description=f'{msg}',
+        color=0x1DB954)
+    # await interaction.channel.send(embed=embed)
+
+    await user.send(embed=embed)
 
 bot.run(TOKEN)
