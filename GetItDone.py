@@ -142,10 +142,6 @@ async def undo(interaction: discord.Interaction):
     await template_category.create_text_channel(name="2")
     await interaction.followup.send("Sucessfully undid changes made by /setup")
 
-@bot.tree.command(name="hello")
-async def hello(interaction: discord.Interaction):
-    await interaction.response.send_message("HI")
-
 @bot.tree.command(name="help")
 async def help(interaction: discord.Interaction):
     embed = discord.Embed(
