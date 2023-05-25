@@ -331,7 +331,13 @@ async def get_todos(interaction: discord.Interaction):
 
     i = 0
     for row in cur.execute(query):
-        embed.add_field(name=row[1], value="Due by " + str(row[2]), inline=False)
+        i += 1
+        date = dateparser.parse(str(row[2]))
+        embed.add_field(name=row[1], value="Due " +
+                        date.strftime("%m/%d %I:%M%p"),
+                        inline=False)
+    if i == 0:
+        embed.description = f"No to-dos!"
     await interaction.response.send_message(embed=embed)
 
 
