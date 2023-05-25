@@ -5,6 +5,7 @@ import os
 import sqlite3
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
+from typing import Optional
 
 # imports for getting Canvas assignments
 import requests
