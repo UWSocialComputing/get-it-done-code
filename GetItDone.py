@@ -53,15 +53,11 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    if message.content.startswith("."):
-        print("testing send")
-        channel = discord.utils.get(bot.get_all_channels(), name="testing-send")
-        print(channel)
-        print(channel.id)
-        channel = bot.get_channel(channel.id)
-        print(channel)
-        # await message.channel.send("Hello!")
-        await channel.send("Hello!")
+    # if message.content.startswith("."):
+    #     print("testing send")
+    #     channel = discord.utils.get(bot.get_all_channels(), name="testing-send")
+    #     channel = bot.get_channel(channel.id)
+    #     await channel.send("Hello!")
 
 
 @bot.event
@@ -104,6 +100,11 @@ async def intro_setup(interaction: discord.Interaction):
     global TODO_CH
     global BOT
 
+    global GENERAL_CH_ID
+    global REMINDER_CH_ID
+    global TODO_CH_ID
+    global BOT_ID
+
     guild = interaction.guild
     for category in guild.categories:
         if category.name == "test":
@@ -121,7 +122,15 @@ async def intro_setup(interaction: discord.Interaction):
     REMINDER_CH = await template_category.create_text_channel(name="reminder")
     TODO_CH = await template_category.create_text_channel(name="to-do")
     BOT = await template_category.create_text_channel(name="bot")
+
+    GENERAL_CH_ID = GENERAL_CH.id
+    REMINDER_CH_ID = REMINDER_CH.id
+    TODO_CH_ID = TODO_CH.id
+    BOT_ID = BOT.id
+
     print(REMINDER_CH.id)
+    print(REMINDER_CH_ID)
+
     embed = discord.Embed(
         title="👋 Welcome to Get It Done!",
         description="This bot organizes group work for teams to work more efficiently and effectively.\n"
@@ -253,16 +262,16 @@ async def create_todo(
     cur.execute(query)
     con.commit()
 
-    # await TODO_CH.send(embed=embed)
+    await interaction.response.send_message("Created new to-do!", ephemeral=True)
 
-    # channel = bot.get_channel(TODO_CH)
-    await interaction.response.send_message(embed=embed)
+    # needs /setup to get called or not set
+    print(REMINDER_CH.id)
+    print(REMINDER_CH_ID)
+
+    # TODO: use channel id instead of name
     channel = discord.utils.get(bot.get_all_channels(), name="to-do")
     print(channel)
-    print(channel.id)
-    channel = bot.get_channel(channel.id)
-
-    await channel.send("hello")
+    channel = bot.get_channel(TODO_CH.id)
     await channel.send(embed=embed)
 
     # wait for reaction to mark complete
@@ -275,8 +284,7 @@ async def create_todo(
     cur.execute(query)
     con.commit()
 
-    
-    await ch.send(f'{user} completed to-do "{todo}!"')
+    await channel.send(f'Completed to-do "{todo}!"')
 
 
 @bot.tree.command(name="clear", description="clear")
