@@ -33,7 +33,9 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 GENERAL_CH = discord.TextChannel
 REMINDER_CH = discord.TextChannel
 TODO_CH = discord.TextChannel
-BOT = discord.TextChannel
+BOT_CH = discord.TextChannel
+ASSIGNMENTS_CH = discord.TextChannel
+
 
 @bot.event
 async def on_ready():
@@ -86,7 +88,8 @@ async def intro_setup(interaction: discord.Interaction):
     global GENERAL_CH
     global REMINDER_CH
     global TODO_CH
-    global BOT
+    global BOT_CH
+    global ASSIGNMENTS_CH
 
     guild = interaction.guild
     for category in guild.categories:
@@ -104,7 +107,9 @@ async def intro_setup(interaction: discord.Interaction):
     GENERAL_CH = await template_category.create_text_channel(name="general")
     REMINDER_CH = await template_category.create_text_channel(name="reminder")
     TODO_CH = await template_category.create_text_channel(name="to-do")
-    BOT = await template_category.create_text_channel(name="bot")
+    ASSIGNMENTS_CH = await template_category.create_text_channel(name="assignments")
+    BOT_CH = await template_category.create_text_channel(name="bot")
+
     print(REMINDER_CH.id)
     embed = discord.Embed(
         title="👋 Welcome to Get It Done!",
@@ -227,7 +232,7 @@ async def create_todo(
         time = " 11:59 PM"
     else:
         time = " " + time
-    
+
     duedate = dateparser.parse(date + time)
     duedate_format = duedate.strftime("%m/%d %I:%M%p")
 
