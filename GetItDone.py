@@ -209,7 +209,7 @@ async def help(interaction: discord.Interaction):
 @discord.app_commands.describe(
     user="Who will complete to-do",
     todo="Brief description of to-do",
-    date="Due date in MM-DD format",
+    date="Due date in MM/DD format",
     time="Defaults to 11:59 PM"
 )
 async def create_todo(
@@ -233,13 +233,13 @@ async def create_todo(
 
     embed = discord.Embed(
         title=f"Created to-do: {todo}",
-        description=f"Assigned to {user.mention}\n Due " + {duedate_format} + "\n"
+        description=f"Assigned to {user.mention}\n Due {duedate_format}\n"
         + "React with ✅ if complete",
         color=0x1DB954,
     )
-    sql_date = duedatetime.strftime("%Y-%m-%d %H:%M:%S")
+    sql_date = duedate.strftime("%Y-%m-%d %H:%M:%S")
     print(sql_date)
-    query = f"INSERT INTO Todos(Description, Deadline, UserID, GuildID) VALUES ('{todo}', {mocked_date}, {member.id}, {member.guild.id})"
+    query = f"INSERT INTO Todos(Description, Deadline, UserID, GuildID) VALUES ('{todo}', '{sql_date}', {user.id}, {user.guild.id})"
     print(query)
     cur.execute(query)
     con.commit()
@@ -251,7 +251,7 @@ async def create_todo(
 
     await bot.wait_for("reaction_add", check=check)
     # set completed bit to 1 in db; eventually use taskid
-    query = f"UPDATE Todos SET Completed = 1 WHERE UserID={member.id} AND Description='{todo}'"
+    query = f"UPDATE Todos SET Completed = 1 WHERE UserID={user.id} AND Description='{todo}'"
     cur.execute(query)
     con.commit()
     await interaction.followup.send(f'Completed to-do "{todo}!"')
