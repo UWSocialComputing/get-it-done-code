@@ -3,10 +3,8 @@
 import discord
 import os
 import sqlite3
-from discord.ext import commands
+from discord.ext import commands, tasks
 from dotenv import load_dotenv
-from typing import Optional
-import dateparser
 
 # imports for getting Canvas assignments
 import requests
@@ -17,6 +15,7 @@ import time
 
 # for reminders
 from asyncio import sleep as s
+from zoneinfo import ZoneInfo
 
 load_dotenv()
 
@@ -27,6 +26,12 @@ cur = con.cursor()
 intents = discord.Intents.all()
 
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+# --- channels ID for organization ---
+GENERAL_CH = discord.TextChannel
+REMINDER_CH = discord.TextChannel
+TODO_CH = discord.TextChannel
+BOT = discord.TextChannel
 
 @bot.event
 async def on_ready():
@@ -76,6 +81,11 @@ async def on_member_join(member):
 @bot.tree.command(name="setup")
 async def intro_setup(interaction: discord.Interaction):
     await interaction.response.defer()
+    global GENERAL_CH
+    global REMINDER_CH
+    global TODO_CH
+    global BOT
+
     guild = interaction.guild
     for category in guild.categories:
         if category.name == "test":
@@ -89,10 +99,11 @@ async def intro_setup(interaction: discord.Interaction):
             break
 
     template_category = await guild.create_category(name="new-test")
-    await template_category.create_text_channel(name="general")
-    await template_category.create_text_channel(name="reminder")
-    await template_category.create_text_channel(name="to-do")
-    await template_category.create_text_channel(name="bot")
+    GENERAL_CH = await template_category.create_text_channel(name="general")
+    REMINDER_CH = await template_category.create_text_channel(name="reminder")
+    TODO_CH = await template_category.create_text_channel(name="to-do")
+    BOT = await template_category.create_text_channel(name="bot")
+    print(REMINDER_CH.id)
     embed = discord.Embed(
         title="👋 Welcome to Get It Done!",
         description="This bot organizes group work for teams to work more efficiently and effectively.\n"+
@@ -119,7 +130,7 @@ async def intro_setup(interaction: discord.Interaction):
         value = "To view all commands in detail",
         inline=False
     )
-    await interaction.followup.send(embed=embed)
+    # await interaction.followup.send(embed=embed)
 
 # A temp command to undo changes made by intro_setup()
 @bot.tree.command(name="undo")
@@ -141,6 +152,10 @@ async def undo(interaction: discord.Interaction):
     await template_category.create_text_channel(name="1")
     await template_category.create_text_channel(name="2")
     await interaction.followup.send("Sucessfully undid changes made by /setup")
+
+@bot.tree.command(name="hello")
+async def hello(interaction: discord.Interaction):
+    await interaction.response.send_message("HI")
 
 @bot.tree.command(name="help")
 async def help(interaction: discord.Interaction):
@@ -189,55 +204,36 @@ async def help(interaction: discord.Interaction):
 
 # commands.greedy if we eventually want to allow multiple users
 @bot.tree.command(name="new", description="Creates and assigns a new to-do")
-@discord.app_commands.describe(
-    user="Who will complete to-do",
-    todo="Brief description of to-do",
-    date="Due date in MM-DD format",
-    time="Defaults to 11:59 PM"
-)
-async def create_todo(
-    interaction: discord.Interaction,
-    user: discord.Member,
-    todo: str,
-    date: str,
-    time: Optional[str],
-):
-    """
-    Bot response to creating and assigning new to-do; updates database
-    """
-    if time is None:
-        # include space for parser
-        time = " 11:59 PM"
-    else:
-        time = " " + time
-    
-    duedate = date + time
-    duedatetime = dateparser.parse(duedate)
-    print(duedatetime)
-    duedatetime_format = duedatetime.strftime("%m/%d %I:%M%p")
-
-    embed = discord.Embed(
-        title=f"Created new to-do: {todo}",
-        description=f"Assigned to {user.mention}\n"
-        + "Due {duedatetime_format}\n"
-        + "React with ✅ if complete",
-        color=0x1DB954,
-    )
-    sql_date = duedatetime.strftime("%Y-%m-%d %H:%M:%S")
+@discord.app_commands.describe(member="Who will complete to-do",
+                               todo="Brief description of to-do",
+                               date="Date in MM-DD format")
+async def create_todo(interaction:discord.Interaction,
+                      member: discord.Member,
+                      todo: str, date: str):
+    '''
+    Bot response to creating and assigning new todo; updates database
+    '''
+    mocked_date = datetime.date.today() + datetime.timedelta(days=2)
+    embed=discord.Embed(
+      title=f'Created new to-do: {todo}',
+      description=f'Assigned to {member.mention}, due by {mocked_date}\n' +
+                  'React with ✅ if complete',
+      color=0x1DB954)
+    sql_date = mocked_date.strftime('%Y-%m-%d %H:%M:%S')
     print(sql_date)
-    query = f"INSERT INTO Todos(Description, Deadline, UserID, GuildID) VALUES ('{todo}', '{sql_date}', {user.id}, {user.guild.id})"
+    query = f"INSERT INTO Todos(Description, Deadline, UserID, GuildID) VALUES ('{todo}', {mocked_date}, {member.id}, {member.guild.id})"
     print(query)
-    cur.execute(f"INSERT INTO Todos(Description, Deadline, UserID, GuildID) VALUES ('{todo}', '{sql_date}', {user.id}, {user.guild.id})")
+    cur.execute(query)
     con.commit()
     await interaction.response.send_message(embed=embed)
 
     # wait for reaction to mark complete
-    def check(reaction):
-        return str(reaction.emoji) == "✅"
+    def check(reaction, user):
+        return str(reaction.emoji) == '✅'
 
     await bot.wait_for("reaction_add", check=check)
     # set completed bit to 1 in db; eventually use taskid
-    query = f"UPDATE Todos SET Completed = 1 WHERE UserID={user.id} AND Description='{todo}'"
+    query = f"UPDATE Todos SET Completed = 1 WHERE UserID={member.id} AND Description='{todo}'"
     cur.execute(query)
     con.commit()
     await interaction.followup.send(f'Completed to-do "{todo}!"')
@@ -263,17 +259,13 @@ async def get_todos(interaction: discord.Interaction):
 #           # con.commit()
 #           await reaction.message.channel.send(f'Completed to-do! {reaction.message.embeds[0].description}')
 
-@bot.tree.command(name="to-dos", description="Show your incomplete to-dos")
-@discord.app_commands.describe(user="Whose to-dos to view, defaults to you")
-async def get_todos(interaction: discord.Interaction,
-                    user: Optional[discord.Member]):
-    """
-    Bot response to requesting all to-dos for a user
-    """
-    if user is not None:
-        user_id = user.id
-    else:
-        user_id = interaction.user.id
+# future: add (optional?) name param
+@bot.tree.command(name="todos", description="Show your incomplete to-dos")
+async def get_todos(interaction: discord.Interaction):
+    '''
+    Bot response to requesting all todos for a user
+    '''
+    user_id = interaction.user.id
     query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user_id} ORDER BY Deadline ASC"
     print(query)
 
@@ -286,14 +278,11 @@ async def get_todos(interaction: discord.Interaction,
       color=0xf1c40f)
 
     for row in cur.execute(query):
-        i += 1
-        date = dateparser.parse(str(row[2]))
-        embed.add_field(name=row[1], value="Due " +
-                        date.strftime("%m/%d %I:%M%p"),
-                        inline=False)
-
-    if i == 0:
-        embed.description = f"No to-dos!"
+        embed.add_field(
+          name=row[1],
+          value='Due by ' + str(row[2]),
+          inline=False
+    )
     await interaction.response.send_message(embed=embed)
 
 # ----- Importing Canvas Assignments -----
@@ -503,17 +492,6 @@ async def print_get_assignments_request_response(interaction: discord.Interactio
     Bot response that loops through assignment list and sends individual messages with embedded assignments
     If we have time it would be cool to change the color associated with each assignment as it's finished?
     '''
-    # for assgn in assignments:
-    #     embed = discord.Embed(
-    #         type='rich',
-    #         title=f'{assgn.get_title()}',
-    #         color=0xFF5733,
-    #         # timestamp={format_time(assgn.get_due_date())},
-    #         # error: TypeError: Expected datetime.datetime or None received set instead
-    #         url=f'{assgn.get_url()}')
-    #     embed.set_footer(text=f'{assgn.get_uid()}')
-    #     await interaction.channel.send(embed=embed)
-    #     time.sleep(2)
 
     embed = discord.Embed(
             type='rich',
@@ -531,55 +509,26 @@ async def print_get_assignments_request_response(interaction: discord.Interactio
 
 
 # ------------------ reminders --------------------------
-# channel_id = 1098434582673629296
+utc = datetime.timezone.utc
+time = datetime.time(hour=0, minute=50, tzinfo=utc)  # 8h00 PST = 15h00 UTC
 
-# #Message 1
-# @tasks.loop(seconds=5)
-# async def called_once_a_day():
-#   message_channel = bot.get_channel(channel_id)
-#   await message_channel.send("test 1")
+@bot.event
+async  def on_ready():
+    send_update.start()
 
-# @called_once_a_day.before_loop
-# async def before():
-#     await bot.wait_until_ready()
-#     print("Finished waiting")
-# #Message 2
-# @tasks.loop(seconds=10)
-# async def called_once_a_day2():
-#     message_channel = bot.get_channel(channel_id)
-#     await message_channel.send("test 2")
+@tasks.loop(time=time)
+async def send_update():
+    '''
+    Send updates at 8AM PST
+    '''
+    if datetime.datetime.today().weekday() == 2:
+        channel = bot.get_channel(REMINDER_CH.id)
+        await bot.change_presence(activity=discord.Game('online'))
+        await channel.send('weekly updates')
 
-# @called_once_a_day2.before_loop
-# async def before():
-#     await bot.wait_until_ready()
-#     print("Finished waiting")
-
-
-# called_once_a_day.start()
-# called_once_a_day2.start()
-
-# @bot.event
-# async def on_ready():
-#     print("Logged in as")
-#     print(bot.user.name)
-#     print("------")
-#     msg1.start()
-
-
-# # Message 1
-# @tasks.loop(hours=24)
-# async def msg1():
-#     message_channel = bot.get_channel(1098434582673629296)
-#     await message_channel.send("test 1")
-
-
-# @msg1.before_loop
-# async def before_msg1():
-#     for _ in range(60*60*24):  # loop the whole day
-#         if datetime.datetime.now().hour == 10+12:  # 24 hour format
-#             print('It is time')
-#             return
-#         await asyncio.sleep(1)# wait a second before looping again. You can make it more
+    channel = bot.get_channel(REMINDER_CH.id)
+    await bot.change_presence(activity=discord.Game('online'))
+    await channel.send('daily updates')
 
 
 @bot.tree.command(name="remind")
