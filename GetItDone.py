@@ -53,12 +53,6 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    # if message.content.startswith("."):
-    #     print("testing send")
-    #     channel = discord.utils.get(bot.get_all_channels(), name="testing-send")
-    #     channel = bot.get_channel(channel.id)
-    #     await channel.send("Hello!")
-
 
 @bot.event
 async def on_guild_join(guild):
@@ -100,11 +94,6 @@ async def intro_setup(interaction: discord.Interaction):
     global TODO_CH
     global BOT
 
-    global GENERAL_CH_ID
-    global REMINDER_CH_ID
-    global TODO_CH_ID
-    global BOT_ID
-
     guild = interaction.guild
     for category in guild.categories:
         if category.name == "test":
@@ -122,14 +111,6 @@ async def intro_setup(interaction: discord.Interaction):
     REMINDER_CH = await template_category.create_text_channel(name="reminder")
     TODO_CH = await template_category.create_text_channel(name="to-do")
     BOT = await template_category.create_text_channel(name="bot")
-
-    GENERAL_CH_ID = GENERAL_CH.id
-    REMINDER_CH_ID = REMINDER_CH.id
-    TODO_CH_ID = TODO_CH.id
-    BOT_ID = BOT.id
-
-    print(REMINDER_CH.id)
-    print(REMINDER_CH_ID)
 
     embed = discord.Embed(
         title="👋 Welcome to Get It Done!",
@@ -245,33 +226,31 @@ async def create_todo(
         time = " 11:59 PM"
     else:
         time = " " + time
-
     duedate = dateparser.parse(date + time)
     duedate_format = duedate.strftime("%m/%d %I:%M%p")
 
     embed = discord.Embed(
-        title=f"Created to-do: {todo}",
+        title=f"To-do: {todo}",
         description=f"Assigned to {user.mention}\n Due {duedate_format}\n"
         + "React with ✅ if complete",
         color=0x1DB954,
     )
     sql_date = duedate.strftime("%Y-%m-%d %H:%M:%S")
-    print(sql_date)
     query = f"INSERT INTO Todos(Description, Deadline, UserID, GuildID) VALUES ('{todo}', '{sql_date}', {user.id}, {user.guild.id})"
     print(query)
     cur.execute(query)
     con.commit()
 
-    await interaction.response.send_message("Created new to-do!", ephemeral=True)
+    await interaction.response.send_message("Created new to-do!",
+                                            ephemeral=True)
 
-    # needs /setup to get called or not set
-    print(REMINDER_CH.id)
-    print(REMINDER_CH_ID)
-
-    # TODO: use channel id instead of name
-    channel = discord.utils.get(bot.get_all_channels(), name="to-do")
-    print(channel)
-    channel = bot.get_channel(TODO_CH.id)
+    # check guild's channels to get specific channel id
+    guild = interaction.guild
+    channel_id = -1
+    for c in guild.channels:
+        if c.name == "to-do":
+            channel_id = c.id
+    channel = bot.get_channel(channel_id)
     await channel.send(embed=embed)
 
     # wait for reaction to mark complete
@@ -283,7 +262,6 @@ async def create_todo(
     query = f"UPDATE Todos SET Completed = 1 WHERE UserID={user.id} AND Description='{todo}'"
     cur.execute(query)
     con.commit()
-
     await channel.send(f'Completed to-do "{todo}!"')
 
 
@@ -297,9 +275,9 @@ async def clear_todos(interaction: discord.Interaction):
     cur.execute(query)
     con.commit()
     await interaction.response.send_message("deleted")
-    await send_msg()
 
 
+# for testing
 async def send_msg():
     channel = discord.utils.get(bot.get_all_channels(), name="to-do")
     print(channel)
