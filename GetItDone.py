@@ -130,7 +130,7 @@ async def intro_setup(interaction: discord.Interaction):
         value = "To view all commands in detail",
         inline=False
     )
-    # await interaction.followup.send(embed=embed)
+    await interaction.followup.send(embed=embed)
 
 # A temp command to undo changes made by intro_setup()
 @bot.tree.command(name="undo")
@@ -510,7 +510,7 @@ async def print_get_assignments_request_response(interaction: discord.Interactio
 
 # ------------------ reminders --------------------------
 utc = datetime.timezone.utc
-time = datetime.time(hour=0, minute=50, tzinfo=utc)  # 8h00 PST = 15h00 UTC
+time = datetime.time(hour=8, minute=0, tzinfo=utc)  # 8h00 PST = 15h00 UTC
 
 @bot.event
 async  def on_ready():
