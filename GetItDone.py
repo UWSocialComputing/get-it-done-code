@@ -110,7 +110,6 @@ async def intro_setup(interaction: discord.Interaction):
     ASSIGNMENTS_CH = await template_category.create_text_channel(name="assignments")
     BOT_CH = await template_category.create_text_channel(name="bot")
 
-    print(REMINDER_CH.id)
     embed = discord.Embed(
         title="👋 Welcome to Get It Done!",
         description="This bot organizes group work for teams to work more efficiently and effectively.\n"+
@@ -137,7 +136,12 @@ async def intro_setup(interaction: discord.Interaction):
         value = "To view all commands in detail",
         inline=False
     )
-    await interaction.followup.send(embed=embed)
+
+    print(BOT_CH.id)
+    channel = bot.get_channel(BOT_CH.id)
+    print(channel)
+    await channel.send(embed=embed)
+    await interaction.followup.send("done", ephemeral=True)
 
 # A temp command to undo changes made by intro_setup()
 @bot.tree.command(name="undo")
@@ -205,7 +209,12 @@ async def help(interaction: discord.Interaction):
         value = "View your incomplete to-dos",
         inline=False
     )
-    await interaction.response.send_message(embed=embed)
+    print(BOT_CH.id)
+    channel = bot.get_channel(BOT_CH.id)
+    print(channel)
+    await channel.send(embed=embed)
+    await interaction.response.send_message("done", ephemeral=True)
+
 
 # ----- To-Dos ------------
 
