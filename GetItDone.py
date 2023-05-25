@@ -35,7 +35,9 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 GENERAL_CH = discord.TextChannel
 REMINDER_CH = discord.TextChannel
 TODO_CH = discord.TextChannel
-BOT = discord.TextChannel
+BOT_CH = discord.TextChannel
+ASSIGNMENTS_CH = discord.TextChannel
+
 
 
 @bot.event
@@ -92,7 +94,8 @@ async def intro_setup(interaction: discord.Interaction):
     global GENERAL_CH
     global REMINDER_CH
     global TODO_CH
-    global BOT
+    global BOT_CH
+    global ASSIGNMENTS_CH
 
     guild = interaction.guild
     for category in guild.categories:
@@ -110,7 +113,8 @@ async def intro_setup(interaction: discord.Interaction):
     GENERAL_CH = await template_category.create_text_channel(name="general")
     REMINDER_CH = await template_category.create_text_channel(name="reminder")
     TODO_CH = await template_category.create_text_channel(name="to-do")
-    BOT = await template_category.create_text_channel(name="bot")
+    ASSIGNMENTS_CH = await template_category.create_text_channel(name="assignments")
+    BOT_CH = await template_category.create_text_channel(name="bot")
 
     embed = discord.Embed(
         title="👋 Welcome to Get It Done!",
@@ -198,7 +202,12 @@ async def help(interaction: discord.Interaction):
         + "If user not specified, shows your incomplete to-dos",
         inline=False,
     )
-    await interaction.response.send_message(embed=embed)
+    print(BOT_CH.id)
+    channel = bot.get_channel(BOT_CH.id)
+    print(channel)
+    await channel.send(embed=embed)
+    await interaction.response.send_message("done", ephemeral=True)
+
 
 
 # ----- To-Dos ------------
