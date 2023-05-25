@@ -5,6 +5,8 @@ import os
 import sqlite3
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
+
+# for dates
 from typing import Optional
 import dateparser
 
@@ -12,7 +14,7 @@ import dateparser
 import requests
 from icalendar import Calendar
 import datetime
-from pytz import UTC # timezone - might not need this
+from pytz import UTC  # timezone - might not need this
 import time
 
 # for reminders
@@ -37,22 +39,22 @@ BOT_CH = discord.TextChannel
 ASSIGNMENTS_CH = discord.TextChannel
 
 
+
 @bot.event
 async def on_ready():
-    print(f'We have logged in as {bot.user}')
+    print(f"We have logged in as {bot.user}")
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} commands")
     except Exception as e:
         print(e)
 
+
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
         return
 
-    if message.content.startswith('.'):
-        await message.channel.send('Hello!')
 
 @bot.event
 async def on_guild_join(guild):
@@ -75,12 +77,16 @@ async def on_guild_join(guild):
     con.commit()
     # End update database
 
+
 @bot.event
 async def on_member_join(member):
     print(member.name)
     cur.execute(f"INSERT OR IGNORE INTO Users VALUES ({member.id})")
-    cur.execute(f"INSERT OR IGNORE INTO UserGuild VALUES ({member.id},{member.guild.id})")
+    cur.execute(
+        f"INSERT OR IGNORE INTO UserGuild VALUES ({member.id},{member.guild.id})"
+    )
     con.commit()
+
 
 @bot.tree.command(name="setup")
 async def intro_setup(interaction: discord.Interaction):
@@ -112,36 +118,28 @@ async def intro_setup(interaction: discord.Interaction):
 
     embed = discord.Embed(
         title="👋 Welcome to Get It Done!",
-        description="This bot organizes group work for teams to work more efficiently and effectively.\n"+
-                    "Some commands you should know:",
-        colour=discord.Colour.dark_green()
+        description="This bot organizes group work for teams to work more efficiently and effectively.\n"
+        + "Some commands you should know:",
+        colour=discord.Colour.dark_green(),
     )
     embed.add_field(
         name="/new [@user] [task] [date]",
-        value = "🏷️ Assign a new [task] to a [user], due by [date]",
-        inline=False
+        value="🏷️ Assign a new [task] to a [user], due by [date]",
+        inline=False,
     )
     embed.add_field(
         name="/remind [@user] [task]",
-        value = "🔔 Anonymously remind a [user] of their [task] that’s due soon",
-        inline=False
+        value="🔔 Anonymously remind a [user] of their [task] that’s due soon",
+        inline=False,
     )
     embed.add_field(
         name="/import [canvas link] [class code]",
-        value = "📝 Import all assignments from a Canvas calendar feed link",
-        inline=False
+        value="📝 Import all assignments from a Canvas calendar feed link",
+        inline=False,
     )
-    embed.add_field(
-        name="/help",
-        value = "To view all commands in detail",
-        inline=False
-    )
+    embed.add_field(name="/help", value="To view all commands in detail", inline=False)
+    await interaction.followup.send(embed=embed)
 
-    print(BOT_CH.id)
-    channel = bot.get_channel(BOT_CH.id)
-    print(channel)
-    await channel.send(embed=embed)
-    await interaction.followup.send("done", ephemeral=True)
 
 # A temp command to undo changes made by intro_setup()
 @bot.tree.command(name="undo")
@@ -164,56 +162,52 @@ async def undo(interaction: discord.Interaction):
     await template_category.create_text_channel(name="2")
     await interaction.followup.send("Sucessfully undid changes made by /setup")
 
-@bot.tree.command(name="hello")
-async def hello(interaction: discord.Interaction):
-    await interaction.response.send_message("HI")
 
 @bot.tree.command(name="help")
 async def help(interaction: discord.Interaction):
     embed = discord.Embed(
         title="How to use Get It Done",
         description="Here is a list of commands that you can use:",
-        colour=discord.Colour.dark_green()
+        colour=discord.Colour.dark_green(),
     )
     embed.add_field(
         name="/new [@user] [task] [date]",
-        value = "[@user] - assign the task to\n" +
-                "[task] - the task\n" +
-                "[date] - the date to complete the task by, format: mm/dd/yy\n" +
-                "Bot sends out a 24-hr reminder before deadline\n" +
-                "React to the bot message to mark complete \n\n",
-        inline=False
+        value="[@user] - assign the task to\n"
+        + "[task] - the task\n"
+        + "[date] - the date to complete the task by, format: mm/dd/yy\n"
+        + "Bot sends out a 24-hr reminder before deadline\n"
+        + "React to the bot message to mark complete \n\n",
+        inline=False,
     )
     embed.add_field(
         name="/remind [@user] [task]",
-        value = "Bot DMs user to remind them of their todo and deadline",
-        inline=False
+        value="Bot DMs user to remind them of their todo and deadline",
+        inline=False,
     )
     embed.add_field(
         name="/import [canvas link] [class code]",
-        value = "To import assignment deadlines from Canvas \n" +
-                "Bot will send out reminder 24 hours before the deadline \n" +
-                "Ex: /import https://canvas.uw.edu/feeds/calendars/user_qkZr6adOTXT0f39gFbhD5WxQXVyLliTHGaHkcE4d.ics cse481p",
-        inline=False
+        value="To import assignment deadlines from Canvas \n"
+        + "Bot will send out reminder 24 hours before the deadline \n"
+        + "Ex: /import https://canvas.uw.edu/feeds/calendars/user_qkZr6adOTXT0f39gFbhD5WxQXVyLliTHGaHkcE4d.ics cse481p",
+        inline=False,
     )
     embed.add_field(
         name="/assignments",
-        value = "To view all upcoming (imported) assignments",
-        inline=False
+        value="To view all upcoming (imported) assignments",
+        inline=False,
     )
     embed.add_field(
-        # name="/todos ([@user])",
-        # value = "[@user] - view the incomplete to-dos of a specific user\n" +
-        #         "Otherwise all incomplete to-dos will be shown",
-        name="/todos",
-        value = "View your incomplete to-dos",
-        inline=False
+        name="/todos ([@user])",
+        value="[@user] - view the incomplete to-dos of a specific user\n"
+        + "If user not specified, shows your incomplete to-dos",
+        inline=False,
     )
     print(BOT_CH.id)
     channel = bot.get_channel(BOT_CH.id)
     print(channel)
     await channel.send(embed=embed)
     await interaction.response.send_message("done", ephemeral=True)
+
 
 
 # ----- To-Dos ------------
@@ -224,7 +218,7 @@ async def help(interaction: discord.Interaction):
     user="Who will complete to-do",
     todo="Brief description of to-do",
     date="Due date in MM/DD format",
-    time="Defaults to 11:59 PM"
+    time="Defaults to 11:59 PM",
 )
 async def create_todo(
     interaction: discord.Interaction,
@@ -236,67 +230,77 @@ async def create_todo(
     """
     Bot response to creating and assigning new to-do; updates database
     """
+    # include space for parser
     if time is None:
-        # include space for parser
         time = " 11:59 PM"
     else:
         time = " " + time
-
     duedate = dateparser.parse(date + time)
     duedate_format = duedate.strftime("%m/%d %I:%M%p")
 
     embed = discord.Embed(
-        title=f"Created to-do: {todo}",
+        title=f"To-do: {todo}",
         description=f"Assigned to {user.mention}\n Due {duedate_format}\n"
         + "React with ✅ if complete",
         color=0x1DB954,
     )
     sql_date = duedate.strftime("%Y-%m-%d %H:%M:%S")
-    print(sql_date)
     query = f"INSERT INTO Todos(Description, Deadline, UserID, GuildID) VALUES ('{todo}', '{sql_date}', {user.id}, {user.guild.id})"
     print(query)
     cur.execute(query)
     con.commit()
-    await interaction.response.send_message(embed=embed)
+
+    await interaction.response.send_message("Created new to-do!",
+                                            ephemeral=True)
+
+    # check guild's channels to get specific channel id
+    guild = interaction.guild
+    channel_id = -1
+    for c in guild.channels:
+        if c.name == "to-do":
+            channel_id = c.id
+    channel = bot.get_channel(channel_id)
+    await channel.send(embed=embed)
 
     # wait for reaction to mark complete
     def check(reaction, user):
-        return str(reaction.emoji) == '✅'
+        return str(reaction.emoji) == "✅"
 
     await bot.wait_for("reaction_add", check=check)
     # set completed bit to 1 in db; eventually use taskid
     query = f"UPDATE Todos SET Completed = 1 WHERE UserID={user.id} AND Description='{todo}'"
     cur.execute(query)
     con.commit()
-    await interaction.followup.send(f'Completed to-do "{todo}!"')
+    await channel.send(f'Completed to-do "{todo}!"')
+
 
 @bot.tree.command(name="clear", description="clear")
-async def get_todos(interaction: discord.Interaction):
-    '''
+async def clear_todos(interaction: discord.Interaction):
+    """
     Clears all user tasks (for testing)
-    '''
+    """
     user_id = interaction.user.id
     query = f"DELETE FROM Todos WHERE UserID={user_id}"
     cur.execute(query)
     con.commit()
-    await interaction.response.send_message('deleted')
+    await interaction.response.send_message("deleted")
 
-# @bot.event
-# async def on_reaction_add(reaction, user):
-#     if reaction.message.author.bot and 'Created new to-do' in reaction.message.embeds[0].title:
-#         if reaction.emoji == '✅':
-#           # set completed bit to 1 in db
-#           # query = f"UPDATE Todos(Description, Deadline, UserID, GuildID) SET Completed = 1 WHERE UserID=user_id AND TodoID=todo_id"
-#           # cur.execute(query)
-#           # con.commit()
-#           await reaction.message.channel.send(f'Completed to-do! {reaction.message.embeds[0].description}')
+
+# for testing
+async def send_msg():
+    channel = discord.utils.get(bot.get_all_channels(), name="to-do")
+    print(channel)
+    print(channel.id)
+    ch = bot.get_channel(channel.id)
+    await ch.send("hello")
+
 
 # future: add (optional?) name param
 @bot.tree.command(name="todos", description="Show your incomplete to-dos")
 async def get_todos(interaction: discord.Interaction):
-    '''
+    """
     Bot response to requesting all todos for a user
-    '''
+    """
     user_id = interaction.user.id
     query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user_id} ORDER BY Deadline ASC"
     print(query)
@@ -305,30 +309,26 @@ async def get_todos(interaction: discord.Interaction):
         print(row[1])
         print(row[2])
 
-    embed=discord.Embed(
-      title=f'Your To-Dos:',
-      color=0xf1c40f)
+    embed = discord.Embed(title=f"Your To-Dos:", color=0xF1C40F)
 
     i = 0
     for row in cur.execute(query):
-        embed.add_field(
-          name=row[1],
-          value='Due by ' + str(row[2]),
-          inline=False
-    )
+        embed.add_field(name=row[1], value="Due by " + str(row[2]), inline=False)
     await interaction.response.send_message(embed=embed)
+
 
 # ----- Importing Canvas Assignments -----
 
-headers = ['BEGIN', 'UID', 'DTEND', 'SUMMARY', 'URL', 'END']
+headers = ["BEGIN", "UID", "DTEND", "SUMMARY", "URL", "END"]
 
 
 # maybe if we have time we can allow assignments to be edited - like changing title or due date
 # we could also create a color field or boolean and change it once it's been completed, instead of going into the embed every time
 class Assignment:
-    '''
+    """
     each assignment has a unique ID, title, url, and deadline
-    '''
+    """
+
     def __init__(self, uid, title, url, due_date):
         self.uid = uid
         self.title = title
@@ -357,28 +357,37 @@ class Assignment:
         return self.due_date
 
     def __repr__(self):
-        return "ASSIGNMENT:", self.get_title, "URL:", self.get_url, "DEADLINE:", self.due_date
+        return (
+            "ASSIGNMENT:",
+            self.get_title,
+            "URL:",
+            self.get_url,
+            "DEADLINE:",
+            self.due_date,
+        )
 
 
 # global variables, since they will be referred to in any context
-assignments = [] # will have to store these in the database so we can refer back to them
-class_code = ''
+assignments = (
+    []
+)  # will have to store these in the database so we can refer back to them
+class_code = ""
 
 
 def get_link(all_args):
-    '''
+    """
     parse user input arguments to get Canvas calendar link
-    '''
-    all_args = all_args.split(' ')
+    """
+    all_args = all_args.split(" ")
     return all_args[0]
 
 
 def get_class_code(all_args):
-    '''
+    """
     get desired class code from user input, with no spaces
-    '''
-    class_code = ''
-    all_args = all_args.split(' ')
+    """
+    class_code = ""
+    all_args = all_args.split(" ")
 
     for i in range(1, len(all_args)):
         class_code += all_args[i].lower()
@@ -387,10 +396,10 @@ def get_class_code(all_args):
 
 
 def import_assignments(args):
-    '''
+    """
     method to parse Canvas calendar link request to add all assignments to a global list
     assumes args = [link] [class code, which might have spaces]
-    '''
+    """
     # sample link: https://canvas.uw.edu/feeds/calendars/user_qkZr6adOTXT0f39gFbhD5WxQXVyLliTHGaHkcE4d.ics
     canvas_calendar_link = requests.get(get_link(args)).text
 
@@ -398,45 +407,50 @@ def import_assignments(args):
     class_code = get_class_code(args)
 
     # Fields we are saving for each assignment
-    title = '' # assignment title in summary
-    due_date = '' # deadline in python dt format
-    uid = '' # assignment ID in uid
-    url = '' # assignment Canvas url
+    title = ""  # assignment title in summary
+    due_date = ""  # deadline in python dt format
+    uid = ""  # assignment ID in uid
+    url = ""  # assignment Canvas url
 
     # loop through the calendar request and create assignment items for each event-assignment
     # & add them to global list of assignments
     gcal = Calendar.from_ical(canvas_calendar_link)
     for component in gcal.walk():
         if component.name == "VEVENT":
-            uid = component.get('uid')
+            uid = component.get("uid")
 
             # only get assignments
-            if 'assignment' in uid:
-                title = component.get('summary')
+            if "assignment" in uid:
+                title = component.get("summary")
 
                 # detect class code in assignment title
-                title_and_classcode = title.replace(' ', '').lower()
+                title_and_classcode = title.replace(" ", "").lower()
 
                 # detect if class code of assignment matches the class code of the user's request
                 if class_code in title_and_classcode:
                     # get title w/o class code
-                    title_arr = title.split(' [')
+                    title_arr = title.split(" [")
                     title = title_arr[0]
 
                     # get due date as a datetime object
-                    due_date = component.get('dtend').dt
+                    due_date = component.get("dtend").dt
 
                     # start forming assignment page url
                     # this is just for UW canvas, but to make it universal we could parse the Canvas calendar URL to get only this part
-                    url = 'https://canvas.uw.edu/courses/'
+                    url = "https://canvas.uw.edu/courses/"
 
                     # get the course ID from the assignment's url
-                    course_id = component.get('url').split('course')[1].split('&')[0].replace('_', '')
+                    course_id = (
+                        component.get("url")
+                        .split("course")[1]
+                        .split("&")[0]
+                        .replace("_", "")
+                    )
                     url += course_id
-                    url += '/assignments/'
+                    url += "/assignments/"
 
                     # make id to just be a number
-                    uid = uid.split('-')[-1]
+                    uid = uid.split("-")[-1]
 
                     # add assignment id to complete canvas assignment url
                     url += uid
@@ -451,16 +465,16 @@ def import_assignments(args):
 # fix this so we can create reminders
 # maybe keep all assignments in the database and do some math on time to get all assignments in the coming week (+ 7 days) for the weekly upcoming overview and send reminders 24hrs in advance of a deadline
 def format_time(due_date):
-    '''
+    """
     Format assignment due date in the required format for Discord embedded messages
     * doesn't work rn
-    '''
+    """
     # in canvas: 20230606T183000Z
     # need: 2023-06-06T18:00:00.000Z
 
     # date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
     # print("date and time:",date_time)
-    return datetime.datetime.strptime(str(due_date), '%Y-%m-%d %H:%M:%S%z')
+    return datetime.datetime.strptime(str(due_date), "%Y-%m-%d %H:%M:%S%z")
     # return due_date.strftime('%Y-%m-%d T%H:%M:%S.000Z')
 
     # indices = [0,4,6,11,13]
@@ -479,63 +493,67 @@ def format_time(due_date):
 
 # maybe rename args so it's helpful for the user when using the command
 @bot.tree.command(name="import")
-async def import_assignments_request(interaction: discord.Interaction,
-                                     args: str):
-    '''
+async def import_assignments_request(interaction: discord.Interaction, args: str):
+    """
     Bot request to import assignments from Canvas calendar.
     args should contain Canvas calendar URL and class code.
     EX: /import https://canvas.uw.edu/... cse481p
-    '''
+    """
     assignments = import_assignments(args)
     class_code = get_class_code(args)
-    await print_import_assignments_request_response(interaction, assignments, class_code)
+    await print_import_assignments_request_response(
+        interaction, assignments, class_code
+    )
 
 
 # right now the class code has no spaces and is .lower() like cse481p - maybe find a way to keep how the user entered the class code like CSE 481 P or CSE 481P
-async def print_import_assignments_request_response(interaction: discord.Interaction,
-                                                    assignments_list: list, class_code: str):
-    '''
+async def print_import_assignments_request_response(
+    interaction: discord.Interaction, assignments_list: list, class_code: str
+):
+    """
     Bot response to print success message after importing assignments
-    '''
-    embed=discord.Embed(
-        title=f'Success! Imported {len(assignments_list)} assignments from {class_code}',
-        description='Use /assignments to view all assignments.',
-        color=0x1DB954)
+    """
+    embed = discord.Embed(
+        title=f"Success! Imported {len(assignments_list)} assignments from {class_code}",
+        description="Use /assignments to view all assignments.",
+        color=0x1DB954,
+    )
     await interaction.channel.send(embed=embed)
 
 
 @bot.tree.command(name="assignments")
 async def get_assignments_request(interaction: discord.Interaction):
-    '''
+    """
     Bot request to get a list of all assignments
-    '''
+    """
     # assignments = import_assignments()
     # will have to refer back to the database for list of assignments
     if len(assignments) > 0:
         await print_get_assignments_request_response(interaction, assignments)
     else:
-        await interaction.channel.send('No assignments')
+        await interaction.channel.send("No assignments")
 
 
 # rn we are showing the assignment ID but it could also just be used internally. not sure if we should keep this so we can refer to assignments in future functions?
 # want to show the relative time deadline in the timestamp of the embed, but there's an issue with the datetime object we're passing through - could just be how canvas datetime formatted differently than how datetime is expected as an argument
-async def print_get_assignments_request_response(interaction: discord.Interaction,
-                                                 assignments: list):
-    '''
+async def print_get_assignments_request_response(
+    interaction: discord.Interaction, assignments: list
+):
+    """
     Bot response that loops through assignment list and sends individual messages with embedded assignments
     If we have time it would be cool to change the color associated with each assignment as it's finished?
-    '''
+    """
 
     embed = discord.Embed(
-            type='rich',
-            title="All Assignments",
-            color=0xFF5733,
+        type="rich",
+        title="All Assignments",
+        color=0xFF5733,
     )
     for assgn in assignments:
         embed.add_field(
-            name=f'{assgn.get_title()}',
-            value=f'Due Date: {format_time(assgn.get_due_date())} \n [Link]({assgn.get_url()})',
-            inline=False
+            name=f"{assgn.get_title()}",
+            value=f"Due Date: {format_time(assgn.get_due_date())} \n [Link]({assgn.get_url()})",
+            inline=False,
         )
     await interaction.channel.send(embed=embed)
     time.sleep(2)
@@ -545,34 +563,33 @@ async def print_get_assignments_request_response(interaction: discord.Interactio
 utc = datetime.timezone.utc
 time = datetime.time(hour=8, minute=0, tzinfo=utc)  # 8h00 PST = 15h00 UTC
 
+
 @bot.event
-async  def on_ready():
+async def on_ready():
     send_update.start()
+
 
 @tasks.loop(time=time)
 async def send_update():
-    '''
+    """
     Send updates at 8AM PST
-    '''
+    """
     if datetime.datetime.today().weekday() == 2:
         channel = bot.get_channel(REMINDER_CH.id)
-        await bot.change_presence(activity=discord.Game('online'))
-        await channel.send('weekly updates')
+        await bot.change_presence(activity=discord.Game("online"))
+        await channel.send("weekly updates")
 
     channel = bot.get_channel(REMINDER_CH.id)
-    await bot.change_presence(activity=discord.Game('online'))
-    await channel.send('daily updates')
+    await bot.change_presence(activity=discord.Game("online"))
+    await channel.send("daily updates")
 
 
 @bot.tree.command(name="remind")
-@discord.app_commands.describe(user="Who to remind",
-                               msg="msg to send")
+@discord.app_commands.describe(user="Who to remind", msg="msg to send")
 async def remind(interaction: discord.Interaction, user: discord.Member, msg: str):
-    embed=discord.Embed(
-        title="Reminder!",
-        description=f'{msg}',
-        color=0x1DB954)
+    embed = discord.Embed(title="Reminder!", description=f"{msg}", color=0x1DB954)
 
     await user.send(embed=embed)
+
 
 bot.run(TOKEN)
