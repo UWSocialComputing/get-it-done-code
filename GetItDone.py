@@ -109,11 +109,15 @@ async def intro_setup(interaction: discord.Interaction):
             await category.delete()
             break
 
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(send_messages=False)
+    }
+
     template_category = await guild.create_category(name="new-test")
     GENERAL_CH = await template_category.create_text_channel(name="general")
-    REMINDER_CH = await template_category.create_text_channel(name="reminder")
-    TODO_CH = await template_category.create_text_channel(name="to-do")
-    ASSIGNMENTS_CH = await template_category.create_text_channel(name="assignments")
+    REMINDER_CH = await template_category.create_text_channel(name="reminder", overwrites=overwrites)
+    TODO_CH = await template_category.create_text_channel(name="to-do", overwrites=overwrites)
+    ASSIGNMENTS_CH = await template_category.create_text_channel(name="assignments", overwrites=overwrites)
     BOT_CH = await template_category.create_text_channel(name="bot")
 
     embed = discord.Embed(
