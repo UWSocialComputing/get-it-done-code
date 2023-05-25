@@ -118,26 +118,40 @@ async def intro_setup(interaction: discord.Interaction):
 
     embed = discord.Embed(
         title="👋 Welcome to Get It Done!",
-        description="This bot organizes group work for teams to work more efficiently and effectively.\n"
-        + "Some commands you should know:",
-        colour=discord.Colour.dark_green(),
+        description="This bot organizes group work for teams to work more efficiently and effectively.\n"+
+                    "Breif overview of the channels:",
+        colour=discord.Colour.dark_green()
     )
     embed.add_field(
-        name="/new [@user] [task] [date]",
-        value="🏷️ Assign a new [task] to a [user], due by [date]",
-        inline=False,
+        name="#general",
+        value = "Channel for general group communications",
+        inline=False
     )
     embed.add_field(
-        name="/remind [@user] [task]",
-        value="🔔 Anonymously remind a [user] of their [task] that’s due soon",
-        inline=False,
+        name="#reminders",
+        value = "Channel used by the bot to send daily and weekly reminders of upcoming deadlines and progress",
+        inline=False
     )
     embed.add_field(
-        name="/import [canvas link] [class code]",
-        value="📝 Import all assignments from a Canvas calendar feed link",
-        inline=False,
+        name="#to-do",
+        value = "Channel used by bot to keep track of completed and incompleted to-do's. This is where the new to-do's will be created.",
+        inline=False
     )
-    embed.add_field(name="/help", value="To view all commands in detail", inline=False)
+    embed.add_field(
+        name="assignments",
+        value = "Channel used by bot to keep track of course completed and incompleted assignments.",
+        inline=False
+    )
+    embed.add_field(
+        name="#bot",
+        value = "Channel for interacting with with the bot.",
+        inline=False
+    )
+    embed.add_field(
+        name="/help",
+        value = "Command to view all commands in detail",
+        inline=False
+    )
     await interaction.followup.send(embed=embed)
 
 
