@@ -10,16 +10,15 @@ from dotenv import load_dotenv
 from typing import Optional
 import dateparser
 
-# imports for getting Canvas assignments
-import requests
-from icalendar import Calendar
+# imports for Canvas assignments
+import Assignments
 import datetime
 from pytz import UTC  # timezone - might not need this
 import time
 
 # for reminders
 from asyncio import sleep as s
-from zoneinfo import ZoneInfo
+from backports.zoneinfo import ZoneInfo
 
 load_dotenv()
 
@@ -288,246 +287,78 @@ async def get_todos(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 
-# ----- Importing Canvas Assignments -----
+# ----- Assignments -----
 
-headers = ["BEGIN", "UID", "DTEND", "SUMMARY", "URL", "END"]
-
-
-# maybe if we have time we can allow assignments to be edited - like changing title or due date
-# we could also create a color field or boolean and change it once it's been completed, instead of going into the embed every time
-class Assignment:
-    """
-    each assignment has a unique ID, title, url, and deadline
-    """
-
-    def __init__(self, uid, title, url, due_date):
-        self.uid = uid
-        self.title = title
-        self.url = url
-        self.due_date = due_date
-
-    def get_uid(self):
-        return self.uid
-
-    def set_title(self, title):
-        self.title = title
-
-    def get_title(self):
-        return self.title
-
-    def set_url(self, url):
-        self.url = url
-
-    def get_url(self):
-        return self.url
-
-    def set_due_date(self, due_date):
-        self.due_date = due_date
-
-    def get_due_date(self):
-        return self.due_date
-
-    def __repr__(self):
-        return (
-            "ASSIGNMENT:",
-            self.get_title,
-            "URL:",
-            self.get_url,
-            "DEADLINE:",
-            self.due_date,
-        )
-
-
-# global variables, since they will be referred to in any context
-assignments = (
-    []
-)  # will have to store these in the database so we can refer back to them
-class_code = ""
-
-
-def get_link(all_args):
-    """
-    parse user input arguments to get Canvas calendar link
-    """
-    all_args = all_args.split(" ")
-    return all_args[0]
-
-
-def get_class_code(all_args):
-    """
-    get desired class code from user input, with no spaces
-    """
-    class_code = ""
-    all_args = all_args.split(" ")
-
-    for i in range(1, len(all_args)):
-        class_code += all_args[i].lower()
-
-    return class_code
-
-
-def import_assignments(args):
-    """
-    method to parse Canvas calendar link request to add all assignments to a global list
-    assumes args = [link] [class code, which might have spaces]
-    """
-    # sample link: https://canvas.uw.edu/feeds/calendars/user_qkZr6adOTXT0f39gFbhD5WxQXVyLliTHGaHkcE4d.ics
-    canvas_calendar_link = requests.get(get_link(args)).text
-
-    # sample class code: CSE481P
-    class_code = get_class_code(args)
-
-    # Fields we are saving for each assignment
-    title = ""  # assignment title in summary
-    due_date = ""  # deadline in python dt format
-    uid = ""  # assignment ID in uid
-    url = ""  # assignment Canvas url
-
-    # loop through the calendar request and create assignment items for each event-assignment
-    # & add them to global list of assignments
-    gcal = Calendar.from_ical(canvas_calendar_link)
-    for component in gcal.walk():
-        if component.name == "VEVENT":
-            uid = component.get("uid")
-
-            # only get assignments
-            if "assignment" in uid:
-                title = component.get("summary")
-
-                # detect class code in assignment title
-                title_and_classcode = title.replace(" ", "").lower()
-
-                # detect if class code of assignment matches the class code of the user's request
-                if class_code in title_and_classcode:
-                    # get title w/o class code
-                    title_arr = title.split(" [")
-                    title = title_arr[0]
-
-                    # get due date as a datetime object
-                    due_date = component.get("dtend").dt
-
-                    # start forming assignment page url
-                    # this is just for UW canvas, but to make it universal we could parse the Canvas calendar URL to get only this part
-                    url = "https://canvas.uw.edu/courses/"
-
-                    # get the course ID from the assignment's url
-                    course_id = (
-                        component.get("url")
-                        .split("course")[1]
-                        .split("&")[0]
-                        .replace("_", "")
-                    )
-                    url += course_id
-                    url += "/assignments/"
-
-                    # make id to just be a number
-                    uid = uid.split("-")[-1]
-
-                    # add assignment id to complete canvas assignment url
-                    url += uid
-
-                    # create a new assignment and add it to the list of assignments
-                    assignments.append(Assignment(uid, title, url, due_date))
-
-    # cse481p should have 21 assignments
-    return assignments
-
-
-# fix this so we can create reminders
-# maybe keep all assignments in the database and do some math on time to get all assignments in the coming week (+ 7 days) for the weekly upcoming overview and send reminders 24hrs in advance of a deadline
-def format_time(due_date):
-    """
-    Format assignment due date in the required format for Discord embedded messages
-    * doesn't work rn
-    """
-    # in canvas: 20230606T183000Z
-    # need: 2023-06-06T18:00:00.000Z
-
-    # date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
-    # print("date and time:",date_time)
-    return datetime.datetime.strptime(str(due_date), "%Y-%m-%d %H:%M:%S%z")
-    # return due_date.strftime('%Y-%m-%d T%H:%M:%S.000Z')
-
-    # indices = [0,4,6,11,13]
-    # date_str = ''
-    # prev_index_value = 0
-    # for num in indices:
-    #     date_str += due_date[prev_index_value:num]
-    #     if num == 4 or num == 6:
-    #         date_str += '-'
-    #     elif num == 11 or 13:
-    #         date_str += ':'
-    #     prev_index_value = num
-    # date_str += '00.000Z'
-    # return date_str
-
-
-# maybe rename args so it's helpful for the user when using the command
+# consider catching error if link is invalid
 @bot.tree.command(name="import")
-async def import_assignments_request(interaction: discord.Interaction, args: str):
+@discord.app_commands.describe(
+    link="Canvas calendar link",
+    class_code="Class code - ex. cse481p"
+)
+async def import_assignments_request(
+    interaction: discord.Interaction,
+    link: str, 
+    class_code: str):
     """
-    Bot request to import assignments from Canvas calendar.
-    args should contain Canvas calendar URL and class code.
-    EX: /import https://canvas.uw.edu/... cse481p
+    Import assignments from Canvas calendar
     """
-    assignments = import_assignments(args)
-    class_code = get_class_code(args)
+    guild_id = interaction.guild
+    num_assignments = Assignments.import_assignments(guild_id, link, class_code)
+
     await print_import_assignments_request_response(
-        interaction, assignments, class_code
+        interaction, num_assignments, class_code
     )
 
 
-# right now the class code has no spaces and is .lower() like cse481p - maybe find a way to keep how the user entered the class code like CSE 481 P or CSE 481P
 async def print_import_assignments_request_response(
-    interaction: discord.Interaction, assignments_list: list, class_code: str
+    interaction: discord.Interaction, 
+    num_assignments: int,
+    class_code: str
 ):
     """
     Bot response to print success message after importing assignments
     """
     embed = discord.Embed(
-        title=f"Success! Imported {len(assignments_list)} assignments from {class_code}",
-        description="Use /assignments to view all assignments.",
+        title=f'Success! Imported {num_assignments} assignments from {class_code}',
+        description='Use /assignments to view all assignments.',
         color=0x1DB954,
     )
+
     await interaction.channel.send(embed=embed)
 
 
 @bot.tree.command(name="assignments")
-async def get_assignments_request(interaction: discord.Interaction):
+async def get_assignments(interaction: discord.Interaction):
     """
-    Bot request to get a list of all assignments
+    Get a list of all assignments in #assignments channel
     """
-    # assignments = import_assignments()
-    # will have to refer back to the database for list of assignments
-    if len(assignments) > 0:
-        await print_get_assignments_request_response(interaction, assignments)
-    else:
-        await interaction.channel.send("No assignments")
+    assignments_channel = discord.utils.get(interaction.guild.channels, name='assignments')
+    query = f"SELECT * FROM Assignments"
 
+    i = 0
+    for row in cur.execute(query):
+        i += 1
+        title = row[1]
+        link = row[2]
+        due_date = row[3]
 
-# rn we are showing the assignment ID but it could also just be used internally. not sure if we should keep this so we can refer to assignments in future functions?
-# want to show the relative time deadline in the timestamp of the embed, but there's an issue with the datetime object we're passing through - could just be how canvas datetime formatted differently than how datetime is expected as an argument
-async def print_get_assignments_request_response(
-    interaction: discord.Interaction, assignments: list
-):
-    """
-    Bot response that loops through assignment list and sends individual messages with embedded assignments
-    If we have time it would be cool to change the color associated with each assignment as it's finished?
-    """
-
-    embed = discord.Embed(
-        type="rich",
-        title="All Assignments",
-        color=0xFF5733,
-    )
-    for assgn in assignments:
+        embed = discord.Embed(
+            type='rich',
+            title=f'{title}',
+            color=0xFF5733
+        )
         embed.add_field(
-            name=f"{assgn.get_title()}",
-            value=f"Due Date: {format_time(assgn.get_due_date())} \n [Link]({assgn.get_url()})",
+            name=f'{link}',
+            value=f'Due {due_date})',
             inline=False,
         )
-    await interaction.channel.send(embed=embed)
-    time.sleep(2)
+        await assignments_channel.send(embed=embed, silent=True)
+
+    if i > 0:
+        await interaction.channel.send(f'Assignments have been listed in {assignments_channel.mention}!')
+    if i == 0:
+        await interaction.channel.send('No assignments!')
+
 
 
 # ------------------ reminders --------------------------
