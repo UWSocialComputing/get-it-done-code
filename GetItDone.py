@@ -306,7 +306,7 @@ async def import_assignments_request(
     num_assignments = Assignments.import_assignments(guild_id, link, class_code)
 
     if num_assignments == 0:
-        await interaction.channel.send("No assignments!")
+        await interaction.channel.send("No new assignments!")
     else: 
         await print_import_assignments_request_response(
             interaction, num_assignments, class_code

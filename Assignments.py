@@ -72,13 +72,18 @@ def import_assignments(
                     # add assignment id to complete canvas assignment url
                     url += uid
 
-                    # increment num of assignments
-                    num_assignments += 1
+                    # detect duplicate assignments
+                    detect_duplicates_query = f"SELECT * FROM Assignments WHERE Url LIKE '%{uid}%'"
+                    cur.execute(detect_duplicates_query)
+                    row = cur.fetchone()
+                    if row == None:
+                        # increment num of assignments
+                        num_assignments += 1
 
-                    # create query - consider duplicate assignments 
-                    query = f"INSERT INTO Assignments(Name, Url, Deadline, GuildId) VALUES('{title}', '{url}', '{due_date}', '{guild_id}')"
-                    cur.execute(query)
-                    con.commit()
+                        # create insert query
+                        query = f"INSERT INTO Assignments(Name, Url, Deadline, GuildId) VALUES('{title}', '{url}', '{due_date}', '{guild_id}')"
+                        cur.execute(query)
+                        con.commit()
     return num_assignments
 
 
