@@ -26,18 +26,8 @@ load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 con = sqlite3.connect("data.db")
 cur = con.cursor()
-
 intents = discord.Intents.all()
-
 bot = commands.Bot(command_prefix="!", intents=intents)
-
-# --- channels ID for organization ---
-GENERAL_CH = discord.TextChannel
-REMINDER_CH = discord.TextChannel
-TODO_CH = discord.TextChannel
-BOT_CH = discord.TextChannel
-ASSIGNMENTS_CH = discord.TextChannel
-
 
 
 @bot.event
@@ -46,18 +36,19 @@ async def on_ready():
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} commands")
+        send_update.start()
     except Exception as e:
         print(e)
 
 
 @bot.event
-async def on_message(message):
-    if message.author == bot.user:
-        return
-
-
-@bot.event
 async def on_guild_join(guild):
+    """
+    Upon joining a new guild (server), the bot will:
+    1. Add the guild and its users to the database
+    2. Setup the bot channels
+    3. Send a welcome message
+    """
     # Update database
     member_ids = [member.id for member in guild.members if not member.bot]
     query_u = "INSERT OR IGNORE INTO Users VALUES "
@@ -75,11 +66,61 @@ async def on_guild_join(guild):
     cur.execute(query_u)
     cur.execute(query_ug)
     con.commit()
-    # End update database
+
+    # Create channels
+    template_category = await guild.create_category(name="Get It Done")
+    await template_category.create_text_channel(name="general")
+    await template_category.create_text_channel(name="reminders")
+    await template_category.create_text_channel(name="to-do")
+    await template_category.create_text_channel(name="assignments")
+    await template_category.create_text_channel(name="bot-commands")
+
+    # Send welcome message
+    channel = discord.utils.get(guild.channels, name='bot-commands')
+    embed = discord.Embed(
+        title="👋 Welcome to Get It Done!",
+        description="This bot organizes group work for teams to work more efficiently and effectively.\n"+
+                    "Here's a brief overview of the channels:",
+        colour=discord.Colour.dark_green()
+    )
+    embed.add_field(
+        name="#general",
+        value="Channel for general group communications",
+        inline=False
+    )
+    embed.add_field(
+        name="#reminders",
+        value="Channel used by the bot to send daily and weekly reminders of upcoming deadlines and progress",
+        inline=False
+    )
+    embed.add_field(
+        name="#to-do",
+        value="Channel used by bot to keep track of completed and incompleted to-do's. This is where the new to-do's will be created.",
+        inline=False
+    )
+    embed.add_field(
+        name="#assignments",
+        value="Channel used by bot to keep track of course completed and incompleted assignments.",
+        inline=False
+    )
+    embed.add_field(
+        name="#bot-commands",
+        value="Channel for interacting with the bot.",
+        inline=False
+    )
+    embed.add_field(
+        name="/help",
+        value="Command to view all commands in detail",
+        inline=False
+    )
+    await channel.send(embed=embed)
 
 
 @bot.event
 async def on_member_join(member):
+    """
+    Adds new member to database
+    """
     print(member.name)
     cur.execute(f"INSERT OR IGNORE INTO Users VALUES ({member.id})")
     cur.execute(
@@ -88,101 +129,11 @@ async def on_member_join(member):
     con.commit()
 
 
-@bot.tree.command(name="setup")
-async def intro_setup(interaction: discord.Interaction):
-    await interaction.response.defer()
-    global GENERAL_CH
-    global REMINDER_CH
-    global TODO_CH
-    global BOT_CH
-    global ASSIGNMENTS_CH
-
-    guild = interaction.guild
-    for category in guild.categories:
-        if category.name == "test":
-            channels = category.channels
-            for channel in channels:
-                try:
-                    await channel.delete()
-                except AttributeError:
-                    pass
-            await category.delete()
-            break
-
-    overwrites = {
-        guild.default_role: discord.PermissionOverwrite(send_messages=False)
-    }
-
-    template_category = await guild.create_category(name="new-test")
-    GENERAL_CH = await template_category.create_text_channel(name="general")
-    REMINDER_CH = await template_category.create_text_channel(name="reminder", overwrites=overwrites)
-    TODO_CH = await template_category.create_text_channel(name="to-do", overwrites=overwrites)
-    ASSIGNMENTS_CH = await template_category.create_text_channel(name="assignments", overwrites=overwrites)
-    BOT_CH = await template_category.create_text_channel(name="bot")
-
-    embed = discord.Embed(
-        title="👋 Welcome to Get It Done!",
-        description="This bot organizes group work for teams to work more efficiently and effectively.\n"+
-                    "Breif overview of the channels:",
-        colour=discord.Colour.dark_green()
-    )
-    embed.add_field(
-        name="#general",
-        value = "Channel for general group communications",
-        inline=False
-    )
-    embed.add_field(
-        name="#reminders",
-        value = "Channel used by the bot to send daily and weekly reminders of upcoming deadlines and progress",
-        inline=False
-    )
-    embed.add_field(
-        name="#to-do",
-        value = "Channel used by bot to keep track of completed and incompleted to-do's. This is where the new to-do's will be created.",
-        inline=False
-    )
-    embed.add_field(
-        name="assignments",
-        value = "Channel used by bot to keep track of course completed and incompleted assignments.",
-        inline=False
-    )
-    embed.add_field(
-        name="#bot",
-        value = "Channel for interacting with with the bot.",
-        inline=False
-    )
-    embed.add_field(
-        name="/help",
-        value = "Command to view all commands in detail",
-        inline=False
-    )
-    await interaction.followup.send(embed=embed)
-
-
-# A temp command to undo changes made by intro_setup()
-@bot.tree.command(name="undo")
-async def undo(interaction: discord.Interaction):
-    await interaction.response.defer()
-    guild = interaction.guild
-    for category in guild.categories:
-        if category.name == "new-test":
-            channels = category.channels
-            for channel in channels:
-                try:
-                    await channel.delete()
-                except AttributeError:
-                    pass
-            await category.delete()
-            break
-
-    template_category = await guild.create_category(name="test")
-    await template_category.create_text_channel(name="1")
-    await template_category.create_text_channel(name="2")
-    await interaction.followup.send("Sucessfully undid changes made by /setup")
-
-
 @bot.tree.command(name="help")
 async def help(interaction: discord.Interaction):
+    """
+    Give user list and explanation of commands
+    """
     embed = discord.Embed(
         title="How to use Get It Done",
         description="Here is a list of commands that you can use:",
@@ -220,12 +171,8 @@ async def help(interaction: discord.Interaction):
         + "If user not specified, shows your incomplete to-dos",
         inline=False,
     )
-    print(BOT_CH.id)
-    channel = bot.get_channel(BOT_CH.id)
-    print(channel)
-    await channel.send(embed=embed)
-    await interaction.response.send_message("done", ephemeral=True)
-
+    
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 # ----- To-Dos ------------
@@ -588,24 +535,26 @@ utc = datetime.timezone.utc
 time = datetime.time(hour=8, minute=0, tzinfo=utc)  # 8h00 PST = 15h00 UTC
 
 
-@bot.event
-async def on_ready():
-    send_update.start()
-
+#@bot.event
+#async def on_ready():
+  #  send_update.start()
 
 @tasks.loop(time=time)
 async def send_update():
     """
     Send updates at 8AM PST
     """
-    if datetime.datetime.today().weekday() == 2:
-        channel = bot.get_channel(REMINDER_CH.id)
-        await bot.change_presence(activity=discord.Game("online"))
-        await channel.send("weekly updates")
 
-    channel = bot.get_channel(REMINDER_CH.id)
-    await bot.change_presence(activity=discord.Game("online"))
-    await channel.send("daily updates")
+    # TODO: Search database for assignments and send reminders to their respective servers
+    if datetime.datetime.today().weekday() == 2:
+        # channel = bot.get_channel(REMINDER_CH.id)
+        # await bot.change_presence(activity=discord.Game("online"))
+        # await channel.send("weekly updates")
+        print("hi")
+
+    # channel = bot.get_channel(REMINDER_CH.id)
+    # await bot.change_presence(activity=discord.Game("online"))
+    # await channel.send("daily updates")
 
 
 @bot.tree.command(name="remind")
