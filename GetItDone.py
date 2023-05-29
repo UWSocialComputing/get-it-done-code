@@ -23,7 +23,7 @@ from backports.zoneinfo import ZoneInfo
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-con = sqlite3.connect("data-kn.db")
+con = sqlite3.connect("data.db")
 cur = con.cursor()
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)

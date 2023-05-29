@@ -6,7 +6,7 @@ import datetime
 from pytz import UTC  # timezone - might not need this
 import time
 
-con = sqlite3.connect("data-kn.db")
+con = sqlite3.connect("data.db")
 cur = con.cursor()
 
 # ----- Importing Canvas Assignments -----
