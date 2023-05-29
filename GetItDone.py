@@ -23,7 +23,7 @@ from backports.zoneinfo import ZoneInfo
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-con = sqlite3.connect("data.db")
+con = sqlite3.connect("data-kn.db")
 cur = con.cursor()
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -318,26 +318,27 @@ async def print_import_assignments_request_response(
     """
     Bot response to print success message after importing assignments
     """
+    assignments_channel = discord.utils.get(interaction.guild.channels, name='assignments')
+
+    await post_assignments(assignments_channel)
+
     embed = discord.Embed(
         title=f'Success! Imported {num_assignments} assignments from {class_code}',
-        description='Use /assignments to view all assignments.',
+        description=f'{num_assignments} assignments are listed in {assignments_channel.mention}!',
         color=0x1DB954,
     )
 
     await interaction.channel.send(embed=embed)
 
 
-@bot.tree.command(name="assignments")
-async def get_assignments(interaction: discord.Interaction):
+# make sure to check for duplicates 
+async def post_assignments(assignments_channel):
     """
-    Get a list of all assignments in #assignments channel
+    Post a list of all assignments in #assignments channel
     """
-    assignments_channel = discord.utils.get(interaction.guild.channels, name='assignments')
-    query = f"SELECT * FROM Assignments"
+    query = "SELECT * FROM Assignments"
 
-    i = 0
     for row in cur.execute(query):
-        i += 1
         title = row[1]
         link = row[2]
         due_date = row[3]
@@ -349,16 +350,66 @@ async def get_assignments(interaction: discord.Interaction):
         )
         embed.add_field(
             name=f'{link}',
-            value=f'Due {due_date})',
+            value=f'Due {due_date}',
             inline=False,
         )
         await assignments_channel.send(embed=embed, silent=True)
 
-    if i > 0:
-        await interaction.channel.send(f'Assignments have been listed in {assignments_channel.mention}!')
-    if i == 0:
-        await interaction.channel.send('No assignments!')
 
+@bot.event
+async def on_raw_reaction_add(payload):
+    """
+    Changes that happen when we add emoji reactions 
+    """
+    guild = bot.get_guild(payload.guild_id)
+    assignments_channel = discord.utils.get(guild.channels, name="assignments")
+    channel = bot.get_channel(payload.channel_id)
+    
+    message = await channel.fetch_message(payload.message_id)
+    embed = message.embeds[0]
+
+    # make sure that this happens only when we use the check reaction in the assignments channel 
+    if payload.emoji.name == "✅" and channel == assignments_channel:
+        completed_embed = discord.Embed(
+            type='rich',
+            title=f'COMPLETED: {embed.title}',
+            color=0x1DB954)
+        completed_embed.add_field(
+            name=f'{embed.fields[0].name}',
+            value=f'{embed.fields[0].value}',
+            inline=False,
+        )
+
+        await message.edit(embed=completed_embed)
+
+
+@bot.event
+async def on_raw_reaction_remove(payload):
+    """
+    Changes that happen when we remove emoji reactions 
+    """
+    guild = bot.get_guild(payload.guild_id)
+    assignments_channel = discord.utils.get(guild.channels, name="assignments")
+    channel = bot.get_channel(payload.channel_id)
+    
+    message = await channel.fetch_message(payload.message_id)
+    embed = message.embeds[0]
+
+    # make sure that this happens only when we remove the check reaction in the assignments channel 
+    if payload.emoji.name == "✅" and channel == assignments_channel:
+        title = embed.title.split('COMPLETED: ')[1]
+        
+        reversed_embed = discord.Embed(
+            type='rich',
+            title=f'{title}',
+            color=0xFF5733)
+        reversed_embed.add_field(
+            name=f'{embed.fields[0].name}',
+            value=f'{embed.fields[0].value}',
+            inline=False,
+        )
+
+        await message.edit(embed=reversed_embed)
 
 
 # ------------------ reminders --------------------------

@@ -6,7 +6,7 @@ import datetime
 from pytz import UTC  # timezone - might not need this
 import time
 
-con = sqlite3.connect("data.db")
+con = sqlite3.connect("data-kn.db")
 cur = con.cursor()
 
 # ----- Importing Canvas Assignments -----
@@ -79,7 +79,6 @@ def import_assignments(
                     query = f"INSERT INTO Assignments(Name, Url, Deadline, GuildId) VALUES('{title}', '{url}', '{due_date}', '{guild_id}')"
                     cur.execute(query)
                     con.commit()
-
     return num_assignments
 
 
