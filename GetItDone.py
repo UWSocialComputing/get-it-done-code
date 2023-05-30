@@ -269,6 +269,7 @@ async def get_todos(interaction: discord.Interaction,
             name=row[1], value="Due " + date.strftime("%m/%d %I:%M%p"), inline=False
         )
     if i == 0:
+        embed.color=SUCCESS
         embed.description = f"No to-dos!"
     await interaction.response.send_message(embed=embed)
 
