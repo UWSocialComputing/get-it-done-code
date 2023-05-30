@@ -134,40 +134,42 @@ async def help(interaction: discord.Interaction):
     Give user list and explanation of commands
     """
     embed = discord.Embed(
-        title="How to use Get It Done",
-        description="Here is a list of commands that you can use:",
+        title="How to Get It Done",
+        description="Here is a list of commands you can use:",
         colour=discord.Colour.dark_green(),
     )
     embed.add_field(
-        name="/new [@user] [task] [date]",
-        value="[@user] - assign the task to\n"
-        + "[task] - the task\n"
-        + "[date] - the date to complete the task by, format: mm/dd/yy\n"
-        + "Bot sends out a 24-hr reminder before deadline\n"
-        + "React to the bot message to mark complete \n\n",
+        name="/new [@user] [to-do] [date] [time]",
+        value="[@user] - Who will complete the to-do\n"
+        + "[to-do] - Brief description of to-do\n"
+        + "[date] - Due date in MM/DD format\n"
+        + "[time] - Optional, defaults to 11:59 PM"
+        + "Bot sends out a 24-hr reminder before due date\n"
+        + "React to the bot message to mark complete \n",
         inline=False,
     )
     embed.add_field(
-        name="/remind [@user] [task]",
-        value="Bot DMs user to remind them of their todo and deadline",
+        name="/remind [@user] [to-do]",
+        value="Bot DMs user to remind them of their to-do and due date",
         inline=False,
     )
     embed.add_field(
         name="/import [canvas link] [class code]",
-        value="To import assignment deadlines from Canvas \n"
-        + "Bot will send out reminder 24 hours before the deadline \n"
+        value="Imports assignment deadlines from Canvas calendar link\n"
+        + "Bot sends a 24-hr reminder before due date \n"
+        + "React to the bot message to mark complete \n"
         + "Ex: /import https://canvas.uw.edu/feeds/calendars/user_qkZr6adOTXT0f39gFbhD5WxQXVyLliTHGaHkcE4d.ics cse481p",
         inline=False,
     )
     embed.add_field(
         name="/assignments",
-        value="To view all upcoming (imported) assignments",
+        value="To view all upcoming Canvas assignments",
         inline=False,
     )
     embed.add_field(
         name="/todos ([@user])",
-        value="[@user] - view the incomplete to-dos of a specific user\n"
-        + "If user not specified, shows your incomplete to-dos",
+        value="Shows the incomplete to-dos of a specific user\n"
+        + "If user unspecified, defaults to you",
         inline=False,
     )
     
@@ -179,10 +181,10 @@ async def help(interaction: discord.Interaction):
 # commands.greedy if we eventually want to allow multiple users
 @bot.tree.command(name="new", description="Creates and assigns a new to-do")
 @discord.app_commands.describe(
-    user="Who will complete to-do",
+    user="Who will complete the to-do",
     todo="Brief description of to-do",
     date="Due date in MM/DD format",
-    time="Defaults to 11:59 PM",
+    time="Optional, defaults to 11:59 PM",
 )
 async def create_todo(
     interaction: discord.Interaction,
@@ -192,7 +194,7 @@ async def create_todo(
     time: Optional[str],
 ):
     """
-    Bot response to creating and assigning new to-do; updates database
+    Bot response to /new, creating and assigning new to-do
     """
     # include space for parser
     if time is None:
@@ -241,7 +243,7 @@ async def create_todo(
 @bot.tree.command(name="clear", description="clear")
 async def clear_todos(interaction: discord.Interaction):
     """
-    Clears all user tasks (for testing)
+    Clears all user to-dos (for testing)
     """
     user_id = interaction.user.id
     query = f"DELETE FROM Todos WHERE UserID={user_id}"
@@ -250,16 +252,6 @@ async def clear_todos(interaction: discord.Interaction):
     await interaction.response.send_message("deleted")
 
 
-# for testing
-async def send_msg():
-    channel = discord.utils.get(bot.get_all_channels(), name="to-do")
-    print(channel)
-    print(channel.id)
-    ch = bot.get_channel(channel.id)
-    await ch.send("hello")
-
-
-# future: add (optional?) name param
 @bot.tree.command(name="todos", description="Show your incomplete to-dos")
 async def get_todos(interaction: discord.Interaction):
     """
