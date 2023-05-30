@@ -396,14 +396,14 @@ async def on_raw_reaction_remove(payload):
 
         reversed_embed = discord.Embed(type="rich", title=f"{title}", color=INCOMPLETE)
         if channel == todo_channel:
-          reversed_embed.description = embed.description
-          reversed_embed.title = "To-do: " + reversed_embed.title
+            reversed_embed.description = embed.description
+            reversed_embed.title = "To-do: " + reversed_embed.title
         else:
-          reversed_embed.add_field(
-              name=f"{embed.fields[0].name}",
-              value=f"{embed.fields[0].value}",
-              inline=False,
-          )
+            reversed_embed.add_field(
+                name=f"{embed.fields[0].name}",
+                value=f"{embed.fields[0].value}",
+                inline=False,
+            )
 
         await message.edit(embed=reversed_embed)
 
