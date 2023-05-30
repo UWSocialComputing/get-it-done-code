@@ -75,42 +75,38 @@ async def on_guild_join(guild):
     await template_category.create_text_channel(name="bot-commands")
 
     # Send welcome message
-    channel = discord.utils.get(guild.channels, name='bot-commands')
+    channel = discord.utils.get(guild.channels, name="bot-commands")
     embed = discord.Embed(
         title="👋 Welcome to Get It Done!",
-        description="This bot organizes group work for teams to work more efficiently and effectively.\n"+
-                    "Here's a brief overview of the channels:",
-        colour=discord.Colour.dark_green()
+        description="This bot organizes group work for teams to work more efficiently and effectively.\n"
+        + "Here's a brief overview of the channels:",
+        colour=discord.Colour.dark_green(),
     )
     embed.add_field(
-        name="#general",
-        value="Channel for general group communications",
-        inline=False
+        name="#general", value="Channel for general group communications", inline=False
     )
     embed.add_field(
         name="#reminders",
         value="Channel used by the bot to send daily and weekly reminders of upcoming deadlines and progress",
-        inline=False
+        inline=False,
     )
     embed.add_field(
         name="#to-do",
         value="Channel used by bot to keep track of completed and incompleted to-do's. This is where the new to-do's will be created.",
-        inline=False
+        inline=False,
     )
     embed.add_field(
         name="#assignments",
         value="Channel used by bot to keep track of course completed and incompleted assignments.",
-        inline=False
+        inline=False,
     )
     embed.add_field(
         name="#bot-commands",
         value="Channel for interacting with the bot.",
-        inline=False
+        inline=False,
     )
     embed.add_field(
-        name="/help",
-        value="Command to view all commands in detail",
-        inline=False
+        name="/help", value="Command to view all commands in detail", inline=False
     )
     await channel.send(embed=embed)
 
@@ -172,7 +168,7 @@ async def help(interaction: discord.Interaction):
         + "If user unspecified, defaults to you",
         inline=False,
     )
-    
+
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -216,8 +212,7 @@ async def create_todo(
     cur.execute(query)
     con.commit()
 
-    await interaction.response.send_message("Created new to-do!",
-                                            ephemeral=True)
+    await interaction.response.send_message("Created new to-do!", ephemeral=True)
 
     # check guild's channels to get specific channel id
     guild = interaction.guild
@@ -271,9 +266,9 @@ async def get_todos(interaction: discord.Interaction):
     for row in cur.execute(query):
         i += 1
         date = dateparser.parse(str(row[2]))
-        embed.add_field(name=row[1], value="Due " +
-                        date.strftime("%m/%d %I:%M%p"),
-                        inline=False)
+        embed.add_field(
+            name=row[1], value="Due " + date.strftime("%m/%d %I:%M%p"), inline=False
+        )
     if i == 0:
         embed.description = f"No to-dos!"
     await interaction.response.send_message(embed=embed)
@@ -284,13 +279,11 @@ async def get_todos(interaction: discord.Interaction):
 # consider catching error if link is invalid
 @bot.tree.command(name="import")
 @discord.app_commands.describe(
-    link="Canvas calendar link",
-    class_code="Class code - ex. cse481p"
+    link="Canvas calendar link", class_code="Class code - ex. cse481p"
 )
 async def import_assignments_request(
-    interaction: discord.Interaction,
-    link: str, 
-    class_code: str):
+    interaction: discord.Interaction, link: str, class_code: str
+):
     """
     Import assignments from Canvas calendar
     """
@@ -299,34 +292,34 @@ async def import_assignments_request(
 
     if num_assignments == 0:
         await interaction.channel.send("No new assignments!")
-    else: 
+    else:
         await print_import_assignments_request_response(
             interaction, num_assignments, class_code
         )
 
 
 async def print_import_assignments_request_response(
-    interaction: discord.Interaction, 
-    num_assignments: int,
-    class_code: str
+    interaction: discord.Interaction, num_assignments: int, class_code: str
 ):
     """
     Bot response to print success message after importing assignments
     """
-    assignments_channel = discord.utils.get(interaction.guild.channels, name='assignments')
+    assignments_channel = discord.utils.get(
+        interaction.guild.channels, name="assignments"
+    )
 
     await post_assignments(assignments_channel)
 
     embed = discord.Embed(
-        title=f'Success! Imported {num_assignments} assignments from {class_code}',
-        description=f'{num_assignments} assignments are listed in {assignments_channel.mention}!',
+        title=f"Success! Imported {num_assignments} assignments from {class_code}",
+        description=f"{num_assignments} assignments are listed in {assignments_channel.mention}!",
         color=0x1DB954,
     )
 
     await interaction.channel.send(embed=embed)
 
 
-# make sure to check for duplicates 
+# make sure to check for duplicates
 async def post_assignments(assignments_channel):
     """
     Post a list of all assignments in #assignments channel
@@ -338,14 +331,10 @@ async def post_assignments(assignments_channel):
         link = row[2]
         due_date = row[3]
 
-        embed = discord.Embed(
-            type='rich',
-            title=f'{title}',
-            color=0xFF5733
-        )
+        embed = discord.Embed(type="rich", title=f"{title}", color=0xFF5733)
         embed.add_field(
-            name=f'{link}',
-            value=f'Due {due_date}',
+            name=f"{link}",
+            value=f"Due {due_date}",
             inline=False,
         )
         await assignments_channel.send(embed=embed, silent=True)
@@ -354,24 +343,23 @@ async def post_assignments(assignments_channel):
 @bot.event
 async def on_raw_reaction_add(payload):
     """
-    Changes that happen when we add emoji reactions 
+    Changes that happen when we add emoji reactions
     """
     guild = bot.get_guild(payload.guild_id)
     assignments_channel = discord.utils.get(guild.channels, name="assignments")
     channel = bot.get_channel(payload.channel_id)
-    
+
     message = await channel.fetch_message(payload.message_id)
     embed = message.embeds[0]
 
-    # make sure that this happens only when we use the check reaction in the assignments channel 
+    # make sure that this happens only when we use the check reaction in the assignments channel
     if payload.emoji.name == "✅" and channel == assignments_channel:
         completed_embed = discord.Embed(
-            type='rich',
-            title=f'COMPLETED: {embed.title}',
-            color=0x1DB954)
+            type="rich", title=f"COMPLETED: {embed.title}", color=0x1DB954
+        )
         completed_embed.add_field(
-            name=f'{embed.fields[0].name}',
-            value=f'{embed.fields[0].value}',
+            name=f"{embed.fields[0].name}",
+            value=f"{embed.fields[0].value}",
             inline=False,
         )
 
@@ -381,26 +369,23 @@ async def on_raw_reaction_add(payload):
 @bot.event
 async def on_raw_reaction_remove(payload):
     """
-    Changes that happen when we remove emoji reactions 
+    Changes that happen when we remove emoji reactions
     """
     guild = bot.get_guild(payload.guild_id)
     assignments_channel = discord.utils.get(guild.channels, name="assignments")
     channel = bot.get_channel(payload.channel_id)
-    
+
     message = await channel.fetch_message(payload.message_id)
     embed = message.embeds[0]
 
-    # make sure that this happens only when we remove the check reaction in the assignments channel 
+    # make sure that this happens only when we remove the check reaction in the assignments channel
     if payload.emoji.name == "✅" and channel == assignments_channel:
-        title = embed.title.split('COMPLETED: ')[1]
-        
-        reversed_embed = discord.Embed(
-            type='rich',
-            title=f'{title}',
-            color=0xFF5733)
+        title = embed.title.split("COMPLETED: ")[1]
+
+        reversed_embed = discord.Embed(type="rich", title=f"{title}", color=0xFF5733)
         reversed_embed.add_field(
-            name=f'{embed.fields[0].name}',
-            value=f'{embed.fields[0].value}',
+            name=f"{embed.fields[0].name}",
+            value=f"{embed.fields[0].value}",
             inline=False,
         )
 
@@ -412,9 +397,10 @@ utc = datetime.timezone.utc
 time = datetime.time(hour=8, minute=0, tzinfo=utc)  # 8h00 PST = 15h00 UTC
 
 
-#@bot.event
-#async def on_ready():
-  #  send_update.start()
+# @bot.event
+# async def on_ready():
+#  send_update.start()
+
 
 @tasks.loop(time=time)
 async def send_update():
