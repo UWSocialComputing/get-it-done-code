@@ -204,7 +204,7 @@ async def create_todo(
     # sends success message in bot channel
     embed_todo = discord.Embed(
         title=f"To-do: {todo}",
-        description=f"Assigned to {user.mention}\n Due {duedate_format}\n"
+        description=f"{user.mention}\n Due {duedate_format}\n"
         + "React with ✅ if complete",
         color=INCOMPLETE,
     )
@@ -237,20 +237,23 @@ async def clear_todos(interaction: discord.Interaction):
     await interaction.response.send_message("deleted")
 
 
-@bot.tree.command(name="todos", description="Show your incomplete to-dos")
-async def get_todos(interaction: discord.Interaction):
-    """
-    Bot response to requesting all todos for a user
-    """
-    user_id = interaction.user.id
-    query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user_id} ORDER BY Deadline ASC"
-    print(query)
+@bot.tree.command(name="to-dos", description="Shows a user's incomplete to-dos")
+@discord.app_commands.describe(user="Whose to-dos to view, defaults to you")
+async def get_todos(interaction: discord.Interaction,
+                    user: Optional[discord.Member]):
+    '''
+    Bot response to requesting all to-dos for a user
+    ''' 
+    if user is not None:
+      user_id = user.id
+    else:
+      user_id = interaction.user.id
+    query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user_id} ORDER BY Deadline ASC"\
 
-    for row in cur.execute(query):
-        print(row[1])
-        print(row[2])
 
-    embed = discord.Embed(title=f"Your To-Dos:", color=INCOMPLETE)
+    embed=discord.Embed(
+      title=f'Your To-Dos:',
+      color=INCOMPLETE)
 
     i = 0
     for row in cur.execute(query):
@@ -343,7 +346,7 @@ async def on_raw_reaction_add(payload):
     message = await channel.fetch_message(payload.message_id)
     embed = message.embeds[0]
 
-    # make sure that this happens only when we use the check reaction in the assignments channel
+    # make sure that this happens only when we use the check reaction in the assignments/to-do channel
     if payload.emoji.name == "✅" and (
         channel == assignments_channel or channel == todo_channel
     ):
@@ -386,7 +389,7 @@ async def on_raw_reaction_remove(payload):
     message = await channel.fetch_message(payload.message_id)
     embed = message.embeds[0]
 
-    # make sure that this happens only when we remove the check reaction in the assignments channel
+    # make sure that this happens only when we remove the check reaction in the assignments/to-do channel
     if payload.emoji.name == "✅" and (
         channel == assignments_channel or channel == todo_channel
     ):
@@ -444,11 +447,27 @@ async def send_update():
 
 
 @bot.tree.command(name="remind")
-@discord.app_commands.describe(user="Who to remind", msg="msg to send")
-async def remind(interaction: discord.Interaction, user: discord.Member, msg: str):
-    embed = discord.Embed(title="Reminder!", description=f"{msg}", color=INCOMPLETE)
+@discord.app_commands.describe(user="Who to remind")
+async def remind(interaction: discord.Interaction, user: discord.Member):
+    embed = discord.Embed(title="Reminder!", description=f"You have an upcoming to-do: ", color=INCOMPLETE)
 
-    await user.send(embed=embed)
+    # get user's upcoming to-do with nearest deadline
+    query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user.id} ORDER BY Deadline ASC"
+
+    i = 0
+    for row in cur.execute(query):
+        i += 1
+        date = dateparser.parse(str(row[2]))
+        embed.add_field(
+            name=row[1], value="Due " + date.strftime("%m/%d %I:%M%p"), inline=False
+        )
+        break
+    
+    # if no upcoming to-dos
+    if (i == 0):
+        return
+    else:
+        await user.send(embed=embed)
 
 
 bot.run(TOKEN)
