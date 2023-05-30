@@ -237,20 +237,26 @@ async def clear_todos(interaction: discord.Interaction):
     await interaction.response.send_message("deleted")
 
 
-@bot.tree.command(name="todos", description="Show your incomplete to-dos")
-async def get_todos(interaction: discord.Interaction):
-    """
-    Bot response to requesting all todos for a user
-    """
-    user_id = interaction.user.id
-    query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user_id} ORDER BY Deadline ASC"
-    print(query)
-
+# future: add (optional?) name param
+@bot.tree.command(name="to-dos", description="Shows a user's incomplete to-dos")
+@discord.app_commands.describe(user="Whose to-dos to view, defaults to you")
+async def get_todos(interaction: discord.Interaction,
+                    user: Optional[discord.Member]):
+    '''
+    Bot response to requesting all to-dos for a user
+    ''' 
+    if user is not None:
+      user_id = user.id
+    else:
+      user_id = interaction.user.id
+    query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user_id} ORDER BY Deadline ASC"\
+    
     for row in cur.execute(query):
-        print(row[1])
-        print(row[2])
+        print(row)
 
-    embed = discord.Embed(title=f"Your To-Dos:", color=INCOMPLETE)
+    embed=discord.Embed(
+      title=f'Your To-Dos:',
+      color=INCOMPLETE)
 
     i = 0
     for row in cur.execute(query):
@@ -447,6 +453,8 @@ async def send_update():
 @discord.app_commands.describe(user="Who to remind", msg="msg to send")
 async def remind(interaction: discord.Interaction, user: discord.Member, msg: str):
     embed = discord.Embed(title="Reminder!", description=f"{msg}", color=INCOMPLETE)
+    user_id = user.id
+    query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user_id} ORDER BY Deadline ASC"
 
     await user.send(embed=embed)
 
