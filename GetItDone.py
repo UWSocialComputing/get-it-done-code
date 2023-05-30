@@ -237,7 +237,6 @@ async def clear_todos(interaction: discord.Interaction):
     await interaction.response.send_message("deleted")
 
 
-# future: add (optional?) name param
 @bot.tree.command(name="to-dos", description="Shows a user's incomplete to-dos")
 @discord.app_commands.describe(user="Whose to-dos to view, defaults to you")
 async def get_todos(interaction: discord.Interaction,
@@ -250,9 +249,7 @@ async def get_todos(interaction: discord.Interaction,
     else:
       user_id = interaction.user.id
     query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user_id} ORDER BY Deadline ASC"\
-    
-    for row in cur.execute(query):
-        print(row)
+
 
     embed=discord.Embed(
       title=f'Your To-Dos:',
@@ -450,13 +447,27 @@ async def send_update():
 
 
 @bot.tree.command(name="remind")
-@discord.app_commands.describe(user="Who to remind", msg="msg to send")
-async def remind(interaction: discord.Interaction, user: discord.Member, msg: str):
-    embed = discord.Embed(title="Reminder!", description=f"{msg}", color=INCOMPLETE)
-    user_id = user.id
-    query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user_id} ORDER BY Deadline ASC"
+@discord.app_commands.describe(user="Who to remind")
+async def remind(interaction: discord.Interaction, user: discord.Member):
+    embed = discord.Embed(title="Reminder!", description=f"You have an upcoming to-do: ", color=INCOMPLETE)
 
-    await user.send(embed=embed)
+    # get user's upcoming to-do with nearest deadline
+    query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user.id} ORDER BY Deadline ASC"
+
+    i = 0
+    for row in cur.execute(query):
+        i += 1
+        date = dateparser.parse(str(row[2]))
+        embed.add_field(
+            name=row[1], value="Due " + date.strftime("%m/%d %I:%M%p"), inline=False
+        )
+        break
+    
+    # if no upcoming to-dos
+    if (i == 0):
+        return
+    else:
+        await user.send(embed=embed)
 
 
 bot.run(TOKEN)
