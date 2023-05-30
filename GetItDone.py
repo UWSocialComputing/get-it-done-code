@@ -361,7 +361,7 @@ async def on_raw_reaction_add(payload):
                 value=f"{embed.fields[0].value}",
                 inline=False,
             )
-        
+
         await message.edit(embed=completed_embed)
 
     if channel == todo_channel:
