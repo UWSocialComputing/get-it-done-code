@@ -28,6 +28,8 @@ con = sqlite3.connect("data.db")
 cur = con.cursor()
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
+INCOMPLETE = 0xF1C40F
+SUCCESS = 0x1DB954
 
 
 @bot.event
@@ -205,7 +207,7 @@ async def create_todo(
         title=f"To-do: {todo}",
         description=f"Assigned to {user.mention}\n Due {duedate_format}\n"
         + "React with ✅ if complete",
-        color=0xF1C40F,
+        color=INCOMPLETE,
     )
     sql_date = duedate.strftime("%Y-%m-%d %H:%M:%S")
     query = f"INSERT INTO Todos(Description, Deadline, UserID, GuildID) VALUES ('{todo}', '{sql_date}', {user.id}, {user.guild.id})"
@@ -218,7 +220,7 @@ async def create_todo(
     embed_bot = discord.Embed(
         title=f"Success!",
         description=f"New to-do listed in {todo_channel.mention}!\n",
-        color=0x1DB954,
+        color=SUCCESS,
     )
     await interaction.response.send_message(embed=embed_bot)
     await todo_channel.send(embed=embed_todo)
@@ -249,7 +251,7 @@ async def get_todos(interaction: discord.Interaction):
         print(row[1])
         print(row[2])
 
-    embed = discord.Embed(title=f"Your To-Dos:", color=0xF1C40F)
+    embed = discord.Embed(title=f"Your To-Dos:", color=INCOMPLETE)
 
     i = 0
     for row in cur.execute(query):
@@ -303,7 +305,7 @@ async def print_import_assignments_request_response(
         title=f"Success! Imported {num_assignments} assignments from {class_code}",
         description=f"{num_assignments} assignments are listed in {assignments_channel.mention}!"
         + "React with ✅ if complete",
-        color=0x1DB954,
+        color=SUCCESS,
     )
 
     await interaction.channel.send(embed=embed)
@@ -321,7 +323,7 @@ async def post_assignments(assignments_channel):
         link = row[2]
         due_date = row[3]
 
-        embed = discord.Embed(type="rich", title=f"{title}", color=0xFF5733)
+        embed = discord.Embed(type="rich", title=f"{title}", color=INCOMPLETE)
         embed.add_field(
             name=f"{link}",
             value=f"Due {due_date}",
@@ -348,7 +350,7 @@ async def on_raw_reaction_add(payload):
         channel == assignments_channel or channel == todo_channel
     ):
         completed_embed = discord.Embed(
-            type="rich", title=f"COMPLETED: {embed.title}", color=0x1DB954
+            type="rich", title=f"COMPLETED: {embed.title}", color=SUCCESS
         )
 
         if channel == todo_channel:
@@ -392,22 +394,25 @@ async def on_raw_reaction_remove(payload):
     ):
         title = embed.title.split("COMPLETED: ")[1]
 
-        reversed_embed = discord.Embed(type="rich", title=f"{title}", color=0xFF5733)
-        reversed_embed.add_field(
-            name=f"{embed.fields[0].name}",
-            value=f"{embed.fields[0].value}",
-            inline=False,
-        )
+        reversed_embed = discord.Embed(type="rich", title=f"{title}", color=INCOMPLETE)
+        if channel == todo_channel:
+          reversed_embed.description = embed.description
+          reversed_embed.title = "To-do: " + reversed_embed.title
+        else:
+          reversed_embed.add_field(
+              name=f"{embed.fields[0].name}",
+              value=f"{embed.fields[0].value}",
+              inline=False,
+          )
 
         await message.edit(embed=reversed_embed)
 
     if channel == todo_channel:
         # remark to-do as incomplete
-        user_1 = embed.description.split("Assigned to ")[1]
-        user = user_1.split("\n")[0]
-        todo = embed.title.split("To-do: ")[1]
-        query = f"UPDATE Todos SET Completed = 0 WHERE UserID={user.id} AND Description='{todo}'"
-        print(query)
+        embed.description = embed.description.split("\n")[0]
+        user_id = re.findall("\d+", embed.description)[0]
+        todo = embed.title.split("COMPLETED: ")[1]
+        query = f"UPDATE Todos SET Completed = 0 WHERE UserID={user_id} AND Description='{todo}'"
         cur.execute(query)
         con.commit()
 
@@ -443,7 +448,7 @@ async def send_update():
 @bot.tree.command(name="remind")
 @discord.app_commands.describe(user="Who to remind", msg="msg to send")
 async def remind(interaction: discord.Interaction, user: discord.Member, msg: str):
-    embed = discord.Embed(title="Reminder!", description=f"{msg}", color=0x1DB954)
+    embed = discord.Embed(title="Reminder!", description=f"{msg}", color=INCOMPLETE)
 
     await user.send(embed=embed)
 
