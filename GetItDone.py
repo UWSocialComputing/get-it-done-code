@@ -199,7 +199,8 @@ async def create_todo(
     duedate = dateparser.parse(date + time)
     duedate_format = duedate.strftime("%m/%d %I:%M%p")
 
-    embed = discord.Embed(
+    # sends success message in bot channel
+    embed_todo = discord.Embed(
         title=f"To-do: {todo}",
         description=f"Assigned to {user.mention}\n Due {duedate_format}\n"
         + "React with ✅ if complete",
@@ -210,17 +211,19 @@ async def create_todo(
     print(query)
     cur.execute(query)
     con.commit()
+    await interaction.response.send_message(embed=embed_bot)
 
-    await interaction.response.send_message("Created new to-do!", ephemeral=True)
-
-    # check guild's channels to get specific channel id
-    guild = interaction.guild
-    channel_id = -1
-    for c in guild.channels:
-        if c.name == "to-do":
-            channel_id = c.id
-    channel = bot.get_channel(channel_id)
-    await channel.send(embed=embed)
+    # sends todo info in todo channel
+    todo_channel = discord.utils.get(
+        interaction.guild.channels, name="to-do"
+    )
+    embed_bot = discord.Embed(
+        title=f"Success!",
+        description=f"New to-do listed in {todo_channel.mention}!"
+        + "React with ✅ if complete",
+        color=0x1DB954,
+    )
+    await interaction.channel.send(embed=embed_todo)
 
     # wait for reaction to mark complete
     def check(reaction, user):
@@ -231,7 +234,7 @@ async def create_todo(
     query = f"UPDATE Todos SET Completed = 1 WHERE UserID={user.id} AND Description='{todo}'"
     cur.execute(query)
     con.commit()
-    await channel.send(f'Completed to-do "{todo}!"')
+    await interaction.channel.send(f'Completed to-do "{todo}!"')
 
 
 @bot.tree.command(name="clear", description="clear")
@@ -311,7 +314,8 @@ async def print_import_assignments_request_response(
 
     embed = discord.Embed(
         title=f"Success! Imported {num_assignments} assignments from {class_code}",
-        description=f"{num_assignments} assignments are listed in {assignments_channel.mention}!",
+        description=f"{num_assignments} assignments are listed in {assignments_channel.mention}!"
+        + "React with ✅ if complete",
         color=0x1DB954,
     )
 
