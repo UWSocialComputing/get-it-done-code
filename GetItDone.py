@@ -14,7 +14,6 @@ import dateparser
 # imports for Canvas assignments
 import Assignments
 import datetime
-from pytz import UTC  # timezone - might not need this
 import time
 
 # for reminders
@@ -303,15 +302,14 @@ async def print_import_assignments_request_response(
 
     embed = discord.Embed(
         title=f"Success! Imported {num_assignments} assignments from {class_code}",
-        description=f"{num_assignments} assignments are listed in {assignments_channel.mention}!"
-        + "React with ✅ if complete",
-        color=SUCCESS,
+        description=f"{num_assignments} assignments are listed in {assignments_channel.mention}!\n"
+        + "React with ✅ to an assignment if complete",
+        color=0x1DB954,
     )
 
     await interaction.channel.send(embed=embed)
 
 
-# make sure to check for duplicates
 async def post_assignments(assignments_channel):
     """
     Post a list of all assignments in #assignments channel

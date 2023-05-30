@@ -2,9 +2,7 @@ import discord
 import sqlite3
 import requests
 from icalendar import Calendar
-import datetime
-from pytz import UTC  # timezone - might not need this
-import time
+from datetime import datetime, timezone
 
 con = sqlite3.connect("data.db")
 cur = con.cursor()
@@ -17,8 +15,10 @@ headers = ["BEGIN", "UID", "DTEND", "SUMMARY", "URL", "END"]
 # maybe if we have time we can allow assignments to be edited - like changing title or due date
 # we could also create a color field or boolean and change it once it's been completed, instead of going into the embed every time
 
-
-def import_assignments(guild_id, link: str, class_code: str):
+def import_assignments(
+        guild_id, 
+        link: str, 
+        class_code: str):
     """
     Method to parse Canvas calendar link request to add all assignments to database
     """
@@ -26,10 +26,10 @@ def import_assignments(guild_id, link: str, class_code: str):
     canvas_calendar_link = requests.get(link).text
 
     # Fields to save for each assignment
-    title = ""  # assignment title in SUMMARY
-    due_date = ""  # deadline in python dt format
-    uid = ""  # assignment ID in UID
-    url = ""  # assignment Canvas url
+    title = "" # assignment title in SUMMARY
+    due_date = "" # deadline in python dt format
+    uid = "" # assignment ID in UID
+    url = "" # assignment Canvas url
     num_assignments = 0
 
     # loop through the calendar request and create assignment items for each event-assignment
@@ -52,8 +52,9 @@ def import_assignments(guild_id, link: str, class_code: str):
                     title_arr = title.split(" [")
                     title = title_arr[0]
 
-                    # get due date as a datetime object
-                    due_date = component.get("dtend").dt
+                    # get due date as a datetime object and convert to local timezone, then format
+                    due_date = component.get("dtend").dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
+                    due_date = due_date.strftime("%m/%d %I:%M%p")
 
                     # start forming assignment page url
                     # this is just for UW canvas, but to make it universal we could parse the Canvas calendar URL to get only this part
@@ -90,32 +91,3 @@ def import_assignments(guild_id, link: str, class_code: str):
                         cur.execute(query)
                         con.commit()
     return num_assignments
-
-
-# # fix this so we can create reminders
-# # maybe keep all assignments in the database and do some math on time to get all assignments in the coming week (+ 7 days) for the weekly upcoming overview and send reminders 24hrs in advance of a deadline
-def format_time(due_date):
-    """
-    Format assignment due date in the required format for Discord embedded messages
-    * doesn't work rn
-    """
-    # in canvas: 20230606T183000Z
-    # need: 2023-06-06T18:00:00.000Z
-
-    # date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
-    # print("date and time:",date_time)
-    return datetime.datetime.strptime(str(due_date), "%Y-%m-%d %H:%M:%S%z")
-    # return due_date.strftime('%Y-%m-%d T%H:%M:%S.000Z')
-
-    # indices = [0,4,6,11,13]
-    # date_str = ''
-    # prev_index_value = 0
-    # for num in indices:
-    #     date_str += due_date[prev_index_value:num]
-    #     if num == 4 or num == 6:
-    #         date_str += '-'
-    #     elif num == 11 or 13:
-    #         date_str += ':'
-    #     prev_index_value = num
-    # date_str += '00.000Z'
-    # return date_str
