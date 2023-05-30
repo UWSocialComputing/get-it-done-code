@@ -204,7 +204,7 @@ async def create_todo(
     # sends success message in bot channel
     embed_todo = discord.Embed(
         title=f"To-do: {todo}",
-        description=f"Assigned to {user.mention}\n Due {duedate_format}\n"
+        description=f"{user.mention}\n Due {duedate_format}\n"
         + "React with ✅ if complete",
         color=INCOMPLETE,
     )
@@ -343,7 +343,7 @@ async def on_raw_reaction_add(payload):
     message = await channel.fetch_message(payload.message_id)
     embed = message.embeds[0]
 
-    # make sure that this happens only when we use the check reaction in the assignments channel
+    # make sure that this happens only when we use the check reaction in the assignments/to-do channel
     if payload.emoji.name == "✅" and (
         channel == assignments_channel or channel == todo_channel
     ):
@@ -386,7 +386,7 @@ async def on_raw_reaction_remove(payload):
     message = await channel.fetch_message(payload.message_id)
     embed = message.embeds[0]
 
-    # make sure that this happens only when we remove the check reaction in the assignments channel
+    # make sure that this happens only when we remove the check reaction in the assignments/to-do channel
     if payload.emoji.name == "✅" and (
         channel == assignments_channel or channel == todo_channel
     ):
