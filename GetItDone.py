@@ -139,7 +139,7 @@ async def help(interaction: discord.Interaction):
         value="[@user] - Who will complete the to-do\n"
         + "[to-do] - Brief description of to-do\n"
         + "[date] - Due date in MM/DD format\n"
-        + "[time] - Optional, defaults to 11:59 PM"
+        + "[time] - Optional, defaults to 11:59 PM\n"
         + "Bot sends out a 24-hr reminder before due date\n"
         + "React to the bot message to mark complete \n",
         inline=False,
@@ -151,7 +151,7 @@ async def help(interaction: discord.Interaction):
     )
     embed.add_field(
         name="/import [canvas link] [class code]",
-        value="Imports assignment deadlines from Canvas calendar link\n"
+        value="Imports assignment deadlines from a Canvas calendar link\n"
         + "Bot sends a 24-hr reminder before due date \n"
         + "React to the bot message to mark complete \n"
         + "Ex: /import https://canvas.uw.edu/feeds/calendars/user_qkZr6adOTXT0f39gFbhD5WxQXVyLliTHGaHkcE4d.ics cse481p",
@@ -159,13 +159,12 @@ async def help(interaction: discord.Interaction):
     )
     embed.add_field(
         name="/assignments",
-        value="To view all upcoming Canvas assignments",
+        value="Shows all upcoming Canvas assignments",
         inline=False,
     )
     embed.add_field(
         name="/todos ([@user])",
-        value="Shows the incomplete to-dos of a specific user\n"
-        + "If user unspecified, defaults to you",
+        value="Shows a user's incompleted to-dos (if user unspecified, defaults to you)\n",
         inline=False,
     )
 
