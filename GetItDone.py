@@ -32,17 +32,12 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 INCOMPLETE = 0xF1C40F
 SUCCESS = 0x1DB954
 
-pfp_path = "./logo2.png"
-fp = open(pfp_path, 'rb')
-pfp = fp.read()
-
 @bot.event
 async def on_ready():
     print(f"We have logged in as {bot.user}")
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} commands")
-        await bot.user.edit(avatar=pfp)
         send_update.start()
     except Exception as e:
         print(e)
