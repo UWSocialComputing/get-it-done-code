@@ -15,10 +15,7 @@ headers = ["BEGIN", "UID", "DTEND", "SUMMARY", "URL", "END"]
 # maybe if we have time we can allow assignments to be edited - like changing title or due date
 # we could also create a color field or boolean and change it once it's been completed, instead of going into the embed every time
 
-def import_assignments(
-        guild_id, 
-        link: str, 
-        class_code: str):
+def import_assignments(guild_id, link: str, class_code: str):
     """
     Method to parse Canvas calendar link request to add all assignments to database
     """
