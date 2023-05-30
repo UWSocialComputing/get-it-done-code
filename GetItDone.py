@@ -27,9 +27,14 @@ con = sqlite3.connect("data.db")
 cur = con.cursor()
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+# colors
 INCOMPLETE = 0xF1C40F
 SUCCESS = 0x1DB954
 
+pfp_path = "./logo2.png"
+fp = open(pfp_path, 'rb')
+pfp = fp.read()
 
 @bot.event
 async def on_ready():
@@ -37,6 +42,7 @@ async def on_ready():
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} commands")
+        await bot.user.edit(avatar=pfp)
         send_update.start()
     except Exception as e:
         print(e)
@@ -449,6 +455,7 @@ async def send_update():
 @bot.tree.command(name="remind")
 @discord.app_commands.describe(user="Who to remind")
 async def remind(interaction: discord.Interaction, user: discord.Member):
+    await interaction.response.send_message("Sent reminder!", ephemeral=True)
     embed = discord.Embed(title="Reminder!", description=f"You have an upcoming to-do: ", color=INCOMPLETE)
 
     # get user's upcoming to-do with nearest deadline
