@@ -318,7 +318,6 @@ async def print_import_assignments_request_response(
     await interaction.channel.send(embed=embed)
 
 
-# make sure to check for duplicates
 async def post_assignments(assignments_channel):
     """
     Post a list of all assignments in #assignments channel
