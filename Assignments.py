@@ -61,7 +61,12 @@ def import_assignments(
                     url = "https://canvas.uw.edu/courses/"
 
                     # get the course ID from the assignment's url
-                    course_id = component.get("url").split("course")[1].split("&")[0].replace("_", "")
+                    course_id = (
+                        component.get("url")
+                        .split("course")[1]
+                        .split("&")[0]
+                        .replace("_", "")
+                    )
                     url += course_id
                     url += "/assignments/"
 
@@ -72,7 +77,9 @@ def import_assignments(
                     url += uid
 
                     # detect duplicate assignments
-                    detect_duplicates_query = f"SELECT * FROM Assignments WHERE Url LIKE '%{uid}%'"
+                    detect_duplicates_query = (
+                        f"SELECT * FROM Assignments WHERE Url LIKE '%{uid}%'"
+                    )
                     cur.execute(detect_duplicates_query)
                     row = cur.fetchone()
                     if row == None:

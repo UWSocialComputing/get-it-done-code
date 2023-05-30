@@ -5,6 +5,7 @@ import os
 import sqlite3
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
+import re
 
 # for dates
 from typing import Optional
@@ -26,6 +27,8 @@ con = sqlite3.connect("data.db")
 cur = con.cursor()
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
+INCOMPLETE = 0xF1C40F
+SUCCESS = 0x1DB954
 
 
 @bot.event
@@ -198,11 +201,12 @@ async def create_todo(
     duedate = dateparser.parse(date + time)
     duedate_format = duedate.strftime("%m/%d %I:%M%p")
 
-    embed = discord.Embed(
+    # sends success message in bot channel
+    embed_todo = discord.Embed(
         title=f"To-do: {todo}",
         description=f"Assigned to {user.mention}\n Due {duedate_format}\n"
         + "React with ✅ if complete",
-        color=0x1DB954,
+        color=INCOMPLETE,
     )
     sql_date = duedate.strftime("%Y-%m-%d %H:%M:%S")
     query = f"INSERT INTO Todos(Description, Deadline, UserID, GuildID) VALUES ('{todo}', '{sql_date}', {user.id}, {user.guild.id})"
@@ -210,27 +214,15 @@ async def create_todo(
     cur.execute(query)
     con.commit()
 
-    await interaction.response.send_message("Created new to-do!", ephemeral=True)
-
-    # check guild's channels to get specific channel id
-    guild = interaction.guild
-    channel_id = -1
-    for c in guild.channels:
-        if c.name == "to-do":
-            channel_id = c.id
-    channel = bot.get_channel(channel_id)
-    await channel.send(embed=embed)
-
-    # wait for reaction to mark complete
-    def check(reaction, user):
-        return str(reaction.emoji) == "✅"
-
-    await bot.wait_for("reaction_add", check=check)
-    # set completed bit to 1 in db; eventually use taskid
-    query = f"UPDATE Todos SET Completed = 1 WHERE UserID={user.id} AND Description='{todo}'"
-    cur.execute(query)
-    con.commit()
-    await channel.send(f'Completed to-do "{todo}!"')
+    # sends todo info in todo channel
+    todo_channel = discord.utils.get(interaction.guild.channels, name="to-do")
+    embed_bot = discord.Embed(
+        title=f"Success!",
+        description=f"New to-do listed in {todo_channel.mention}!\n",
+        color=SUCCESS,
+    )
+    await interaction.response.send_message(embed=embed_bot)
+    await todo_channel.send(embed=embed_todo)
 
 
 @bot.tree.command(name="clear", description="clear")
@@ -258,7 +250,7 @@ async def get_todos(interaction: discord.Interaction):
         print(row[1])
         print(row[2])
 
-    embed = discord.Embed(title=f"Your To-Dos:", color=0xF1C40F)
+    embed = discord.Embed(title=f"Your To-Dos:", color=INCOMPLETE)
 
     i = 0
     for row in cur.execute(query):
@@ -329,7 +321,7 @@ async def post_assignments(assignments_channel):
         link = row[2]
         due_date = row[3]
 
-        embed = discord.Embed(type="rich", title=f"{title}", color=0xFF5733)
+        embed = discord.Embed(type="rich", title=f"{title}", color=INCOMPLETE)
         embed.add_field(
             name=f"{link}",
             value=f"Due {due_date}",
@@ -345,23 +337,40 @@ async def on_raw_reaction_add(payload):
     """
     guild = bot.get_guild(payload.guild_id)
     assignments_channel = discord.utils.get(guild.channels, name="assignments")
+    todo_channel = discord.utils.get(guild.channels, name="to-do")
     channel = bot.get_channel(payload.channel_id)
 
     message = await channel.fetch_message(payload.message_id)
     embed = message.embeds[0]
 
     # make sure that this happens only when we use the check reaction in the assignments channel
-    if payload.emoji.name == "✅" and channel == assignments_channel:
+    if payload.emoji.name == "✅" and (
+        channel == assignments_channel or channel == todo_channel
+    ):
         completed_embed = discord.Embed(
-            type="rich", title=f"COMPLETED: {embed.title}", color=0x1DB954
-        )
-        completed_embed.add_field(
-            name=f"{embed.fields[0].name}",
-            value=f"{embed.fields[0].value}",
-            inline=False,
+            type="rich", title=f"COMPLETED: {embed.title}", color=SUCCESS
         )
 
+        if channel == todo_channel:
+            completed_embed.description = embed.description
+            todo = embed.title.split("To-do: ")[1]
+            completed_embed.title = f"COMPLETED: {todo}"
+        else:
+            completed_embed.add_field(
+                name=f"{embed.fields[0].name}",
+                value=f"{embed.fields[0].value}",
+                inline=False,
+            )
+
         await message.edit(embed=completed_embed)
+
+    if channel == todo_channel:
+        embed.description = embed.description.split("\n")[0]
+        user_id = re.findall("\d+", embed.description)[0]
+        todo = embed.title.split("To-do: ")[1]
+        query = f"UPDATE Todos SET Completed = 1 WHERE UserID={user_id} AND Description='{todo}'"
+        cur.execute(query)
+        con.commit()
 
 
 @bot.event
@@ -371,23 +380,39 @@ async def on_raw_reaction_remove(payload):
     """
     guild = bot.get_guild(payload.guild_id)
     assignments_channel = discord.utils.get(guild.channels, name="assignments")
+    todo_channel = discord.utils.get(guild.channels, name="to-do")
     channel = bot.get_channel(payload.channel_id)
 
     message = await channel.fetch_message(payload.message_id)
     embed = message.embeds[0]
 
     # make sure that this happens only when we remove the check reaction in the assignments channel
-    if payload.emoji.name == "✅" and channel == assignments_channel:
+    if payload.emoji.name == "✅" and (
+        channel == assignments_channel or channel == todo_channel
+    ):
         title = embed.title.split("COMPLETED: ")[1]
 
-        reversed_embed = discord.Embed(type="rich", title=f"{title}", color=0xFF5733)
-        reversed_embed.add_field(
-            name=f"{embed.fields[0].name}",
-            value=f"{embed.fields[0].value}",
-            inline=False,
-        )
+        reversed_embed = discord.Embed(type="rich", title=f"{title}", color=INCOMPLETE)
+        if channel == todo_channel:
+            reversed_embed.description = embed.description
+            reversed_embed.title = "To-do: " + reversed_embed.title
+        else:
+            reversed_embed.add_field(
+                name=f"{embed.fields[0].name}",
+                value=f"{embed.fields[0].value}",
+                inline=False,
+            )
 
         await message.edit(embed=reversed_embed)
+
+    if channel == todo_channel:
+        # remark to-do as incomplete
+        embed.description = embed.description.split("\n")[0]
+        user_id = re.findall("\d+", embed.description)[0]
+        todo = embed.title.split("COMPLETED: ")[1]
+        query = f"UPDATE Todos SET Completed = 0 WHERE UserID={user_id} AND Description='{todo}'"
+        cur.execute(query)
+        con.commit()
 
 
 # ------------------ reminders --------------------------
@@ -421,7 +446,7 @@ async def send_update():
 @bot.tree.command(name="remind")
 @discord.app_commands.describe(user="Who to remind", msg="msg to send")
 async def remind(interaction: discord.Interaction, user: discord.Member, msg: str):
-    embed = discord.Embed(title="Reminder!", description=f"{msg}", color=0x1DB954)
+    embed = discord.Embed(title="Reminder!", description=f"{msg}", color=INCOMPLETE)
 
     await user.send(embed=embed)
 
