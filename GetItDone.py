@@ -259,6 +259,7 @@ async def get_todos(interaction: discord.Interaction,
 
     embed=discord.Embed(
       title=f'Your To-Dos:',
+      description=f'{user.mention}',
       color=INCOMPLETE)
 
     i = 0
