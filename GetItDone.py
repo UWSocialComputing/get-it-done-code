@@ -294,12 +294,9 @@ async def import_assignments_request(
     guild_id = interaction.guild.id
     num_assignments = Assignments.import_assignments(guild_id, link, class_code)
 
-    if num_assignments == 0:
-        await interaction.channel.send("No new assignments!")
-    else: 
-        await print_import_assignments_request_response(
-            interaction, num_assignments, class_code
-        )
+    await print_import_assignments_request_response(
+        interaction, num_assignments, class_code
+    )
 
 
 async def print_import_assignments_request_response(
@@ -310,17 +307,19 @@ async def print_import_assignments_request_response(
     """
     Bot response to print success message after importing assignments
     """
-    assignments_channel = discord.utils.get(interaction.guild.channels, name='assignments')
+    if num_assignments > 0:
+        assignments_channel = discord.utils.get(interaction.guild.channels, name='assignments')
 
-    await post_assignments(assignments_channel)
+        await post_assignments(assignments_channel)
 
-    embed = discord.Embed(
-        title=f'Success! Imported {num_assignments} assignments from {class_code}',
-        description=f'{num_assignments} assignments are listed in {assignments_channel.mention}!',
-        color=SUCCESS,
-    )
-
-    await interaction.channel.send(embed=embed)
+        embed = discord.Embed(
+            title=f'Success! Imported {num_assignments} assignments from {class_code}',
+            description=f'{num_assignments} assignments are listed in {assignments_channel.mention}!',
+            color=SUCCESS,
+        )
+        await interaction.channel.send(embed=embed)
+    else:
+        await interaction.channel.send("No new assignments!")
 
 
 # make sure to check for duplicates 
