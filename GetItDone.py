@@ -166,11 +166,6 @@ async def help(interaction: discord.Interaction):
         inline=False,
     )
     embed.add_field(
-        name="/assignments",
-        value="Shows all upcoming Canvas assignments",
-        inline=False,
-    )
-    embed.add_field(
         name="/todos ([@user])",
         value="Shows a user's incompleted to-dos (if user unspecified, defaults to you)\n",
         inline=False,
@@ -408,6 +403,8 @@ async def on_raw_reaction_remove(payload):
     channel = bot.get_channel(payload.channel_id)
     
     message = await channel.fetch_message(payload.message_id)
+    if not message.embeds:
+        return
     embed = message.embeds[0]
 
     # make sure that this happens only when we remove the check reaction in the assignments/to-do channel
@@ -446,13 +443,14 @@ async def on_raw_reaction_remove(payload):
 
 # ------------------ reminders --------------------------
 utc = datetime.timezone.utc
-sched_time = datetime.time(hour=7, minute=0, tzinfo=utc)  # 7h00 UTC = 0h00 PDT
+sched_time = datetime.time(hour=7, minute=40, tzinfo=utc)  # 7h00 UTC = 0h00 PDT
 
 @tasks.loop(time=sched_time)
 async def send_update():
     """
     Send updates at 12AM Pacific for both assignments and to-dos
     """
+    print("Sending updates")
     time_now = datetime.datetime.now(datetime.timezone.utc)
     for guild in bot.guilds:
         # Send reminders for assignments
@@ -460,6 +458,7 @@ async def send_update():
         query_ass = f"SELECT * FROM Assignments WHERE GuildID={guild.id} AND Completed=0 ORDER BY Deadline ASC"
         # Check that assignments are <= 24 hours due
         for row in cur.execute(query_ass):
+            print(row)
             due_date = dateparser.parse(str(row[3]))
             if due_date.month != time_now.month or due_date.day != time_now.day:
                 break
@@ -479,6 +478,7 @@ async def send_update():
         # Send reminders for to-dos
         query_todo = f"SELECT * FROM Todos WHERE GuildID={guild.id} AND Completed=0 ORDER BY Deadline ASC"
         for row in cur.execute(query_todo):
+            print(row)
             due_date = dateparser.parse(str(row[2]))
             date_format = due_date.strftime("%m/%d %I:%M%p")
             if due_date.month != time_now.month or due_date.day != time_now.day:
@@ -518,9 +518,6 @@ async def remind(interaction: discord.Interaction, user: discord.Member):
     # if no upcoming to-dos
     if (i == 0):
         return
-    else:
-        await user.send(embed=embed)
-
     await user.send(embed=embed)
 
 bot.run(TOKEN)
