@@ -253,6 +253,7 @@ async def get_todos(interaction: discord.Interaction,
     if user is not None:
       user_id = user.id
     else:
+      user = interaction.user
       user_id = interaction.user.id
     query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user_id} ORDER BY Deadline ASC"\
 
@@ -359,6 +360,8 @@ async def on_raw_reaction_add(payload):
     
     message = await channel.fetch_message(payload.message_id)
     embed = message.embeds[0]
+    if not message.embeds:
+        return
 
     # make sure that this happens only when we use the check reaction in the assignments/to-do channel
     if payload.emoji.name == "✅" and (
