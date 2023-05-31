@@ -358,9 +358,9 @@ async def on_raw_reaction_add(payload):
     channel = bot.get_channel(payload.channel_id)
     
     message = await channel.fetch_message(payload.message_id)
-    embed = message.embeds[0]
     if not message.embeds:
         return
+    embed = message.embeds[0]
 
     # make sure that this happens only when we use the check reaction in the assignments/to-do channel
     if payload.emoji.name == "✅" and (
