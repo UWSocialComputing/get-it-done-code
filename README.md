@@ -5,17 +5,9 @@
 ## How to Run:
 To run, install:
 
-`python3 -m pip install -U discord.py`
+`pip install -r requirements.txt`
 
-`pip install python-dotenv`
-
-`pip install dateparser`
-
-`pip install requests`
-
-`pip install icalendar`
-
-Plus some other packages possibly. If you run the file and there is an error, the terminal will tell what package is still missing.
+Plus some other packages possibly. If you run the file and there is an error, the terminal will tell you what package is still missing.
 
 You'll want to have a file called `.env` that contains the field `DISCORD_TOKEN=token`.
 You can get a Discord bot token by creating a bot through the Discord Developer Portal (https://discord.com/developers/docs/intro).

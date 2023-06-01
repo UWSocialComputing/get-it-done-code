@@ -1,0 +1,7 @@
+backports.statistics==0.1.0
+dateparser==1.1.8
+discord.py==2.2.3
+icalendar==5.0.5
+python-dotenv==1.0.0
+pytz==2022.1
+Requests==2.31.0
