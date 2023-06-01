@@ -23,10 +23,10 @@ def import_assignments(guild_id, link: str, class_code: str):
     canvas_calendar_link = requests.get(link).text
 
     # Fields to save for each assignment
-    title = "" # assignment title in SUMMARY
-    due_date = "" # deadline in python dt format
-    uid = "" # assignment ID in UID
-    url = "" # assignment Canvas url
+    title = ""  # assignment title in SUMMARY
+    due_date = ""  # deadline in python dt format
+    uid = ""  # assignment ID in UID
+    url = ""  # assignment Canvas url
     num_assignments = 0
 
     # loop through the calendar request and create assignment items for each event-assignment
@@ -50,7 +50,11 @@ def import_assignments(guild_id, link: str, class_code: str):
                     title = title_arr[0]
 
                     # get due date as a datetime object and convert to local timezone, then format
-                    due_date = component.get("dtend").dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
+                    due_date = (
+                        component.get("dtend")
+                        .dt.replace(tzinfo=timezone.utc)
+                        .astimezone(tz=None)
+                    )
                     due_date = due_date.strftime("%m/%d %I:%M%p")
 
                     # start forming assignment page url
@@ -79,7 +83,7 @@ def import_assignments(guild_id, link: str, class_code: str):
                     )
                     cur.execute(detect_duplicates_query)
                     row = cur.fetchone()
-                    if row == None:
+                    if row is None:
                         # increment num of assignments
                         num_assignments += 1
 

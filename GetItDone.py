@@ -33,6 +33,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 INCOMPLETE = 0xF1C40F
 SUCCESS = 0x1DB954
 
+
 @bot.event
 async def on_ready():
     print(f"We have logged in as {bot.user}")
@@ -79,42 +80,38 @@ async def on_guild_join(guild):
     await template_category.create_text_channel(name="bot-commands")
 
     # Send welcome message
-    channel = discord.utils.get(guild.channels, name='bot-commands')
+    channel = discord.utils.get(guild.channels, name="bot-commands")
     embed = discord.Embed(
         title="👋 Welcome to Get It Done!",
-        description="This bot organizes group work for teams to work more efficiently and effectively.\n"+
-                    "Here's a brief overview of the channels:",
-        colour=discord.Colour.dark_green()
+        description="This bot organizes group work for teams to work more efficiently and effectively.\n"
+        + "Here's a brief overview of the channels:",
+        colour=discord.Colour.dark_green(),
     )
     embed.add_field(
-        name="#general",
-        value="Channel for general group communications",
-        inline=False
+        name="#general", value="Channel for general group communications", inline=False
     )
     embed.add_field(
         name="#reminders",
         value="Channel used by the bot to send daily and weekly reminders of upcoming deadlines and progress",
-        inline=False
+        inline=False,
     )
     embed.add_field(
         name="#to-do",
         value="Channel used by bot to keep track of completed and incompleted to-do's. This is where the new to-do's will be created.",
-        inline=False
+        inline=False,
     )
     embed.add_field(
         name="#assignments",
         value="Channel used by bot to keep track of course completed and incompleted assignments.",
-        inline=False
+        inline=False,
     )
     embed.add_field(
         name="#bot-commands",
         value="Channel for interacting with the bot.",
-        inline=False
+        inline=False,
     )
     embed.add_field(
-        name="/help",
-        value="Command to view all commands in detail",
-        inline=False
+        name="/help", value="Command to view all commands in detail", inline=False
     )
     await channel.send(embed=embed)
 
@@ -240,23 +237,20 @@ async def clear_todos(interaction: discord.Interaction):
 
 @bot.tree.command(name="to-dos", description="Shows a user's incomplete to-dos")
 @discord.app_commands.describe(user="Whose to-dos to view, defaults to you")
-async def get_todos(interaction: discord.Interaction,
-                    user: Optional[discord.Member]):
-    '''
+async def get_todos(interaction: discord.Interaction, user: Optional[discord.Member]):
+    """
     Bot response to requesting all to-dos for a user
-    ''' 
+    """
     if user is not None:
-      user_id = user.id
+        user_id = user.id
     else:
-      user = interaction.user
-      user_id = interaction.user.id
-    query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user_id} ORDER BY Deadline ASC"\
+        user = interaction.user
+        user_id = interaction.user.id
+    query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user_id} ORDER BY Deadline ASC"
 
-
-    embed=discord.Embed(
-      title=f'Your To-Dos:',
-      description=f'{user.mention}',
-      color=INCOMPLETE)
+    embed = discord.Embed(
+        title=f"Your To-Dos:", description=f"{user.mention}", color=INCOMPLETE
+    )
 
     i = 0
     for row in cur.execute(query):
@@ -266,8 +260,8 @@ async def get_todos(interaction: discord.Interaction,
             name=row[1], value="Due " + date.strftime("%m/%d %I:%M%p"), inline=False
         )
     if i == 0:
-        embed.color=SUCCESS
-        embed.description = f"No to-dos!"
+        embed.color = SUCCESS
+        embed.description = f"{user.mention}\n No to-dos!"
     await interaction.response.send_message(embed=embed)
 
 
@@ -276,13 +270,11 @@ async def get_todos(interaction: discord.Interaction,
 # consider catching error if link is invalid
 @bot.tree.command(name="import")
 @discord.app_commands.describe(
-    link="Canvas calendar link",
-    class_code="Class code - ex. cse481p"
+    link="Canvas calendar link", class_code="Class code - ex. cse481p"
 )
 async def import_assignments_request(
-    interaction: discord.Interaction,
-    link: str, 
-    class_code: str):
+    interaction: discord.Interaction, link: str, class_code: str
+):
     """
     Import assignments from Canvas calendar
     """
@@ -295,21 +287,21 @@ async def import_assignments_request(
 
 
 async def print_import_assignments_request_response(
-    interaction: discord.Interaction, 
-    num_assignments: int,
-    class_code: str
+    interaction: discord.Interaction, num_assignments: int, class_code: str
 ):
     """
     Bot response to print success message after importing assignments
     """
     if num_assignments > 0:
-        assignments_channel = discord.utils.get(interaction.guild.channels, name='assignments')
+        assignments_channel = discord.utils.get(
+            interaction.guild.channels, name="assignments"
+        )
 
         await post_assignments(assignments_channel)
 
         embed = discord.Embed(
-            title=f'Success! Imported {num_assignments} assignments from {class_code}',
-            description=f'{num_assignments} assignments are listed in {assignments_channel.mention}!',
+            title=f"Success! Imported {num_assignments} assignments from {class_code}",
+            description=f"{num_assignments} assignments are listed in {assignments_channel.mention}!",
             color=SUCCESS,
         )
         await interaction.channel.send(embed=embed)
@@ -317,7 +309,7 @@ async def print_import_assignments_request_response(
         await interaction.channel.send("No new assignments!")
 
 
-# make sure to check for duplicates 
+# make sure to check for duplicates
 async def post_assignments(assignments_channel):
     """
     Post a list of all assignments in #assignments channel
@@ -329,14 +321,10 @@ async def post_assignments(assignments_channel):
         link = row[2]
         due_date = row[3]
 
-        embed = discord.Embed(
-            type='rich',
-            title=f'{title}',
-            color=INCOMPLETE
-        )
+        embed = discord.Embed(type="rich", title=f"{title}", color=INCOMPLETE)
         embed.add_field(
-            name=f'{link}',
-            value=f'Due {due_date}',
+            name=f"{link}",
+            value=f"Due {due_date}",
             inline=False,
         )
         await assignments_channel.send(embed=embed, silent=True)
@@ -345,13 +333,13 @@ async def post_assignments(assignments_channel):
 @bot.event
 async def on_raw_reaction_add(payload):
     """
-    Changes that happen when we add emoji reactions 
+    Changes that happen when we add emoji reactions
     """
     guild = bot.get_guild(payload.guild_id)
     assignments_channel = discord.utils.get(guild.channels, name="assignments")
     todo_channel = discord.utils.get(guild.channels, name="to-do")
     channel = bot.get_channel(payload.channel_id)
-    
+
     message = await channel.fetch_message(payload.message_id)
     if not message.embeds:
         return
@@ -395,13 +383,13 @@ async def on_raw_reaction_add(payload):
 @bot.event
 async def on_raw_reaction_remove(payload):
     """
-    Changes that happen when we remove emoji reactions 
+    Changes that happen when we remove emoji reactions
     """
     guild = bot.get_guild(payload.guild_id)
     assignments_channel = discord.utils.get(guild.channels, name="assignments")
     todo_channel = discord.utils.get(guild.channels, name="to-do")
     channel = bot.get_channel(payload.channel_id)
-    
+
     message = await channel.fetch_message(payload.message_id)
     if not message.embeds:
         return
@@ -445,6 +433,7 @@ async def on_raw_reaction_remove(payload):
 utc = datetime.timezone.utc
 sched_time = datetime.time(hour=7, minute=40, tzinfo=utc)  # 7h00 UTC = 0h00 PDT
 
+
 @tasks.loop(time=sched_time)
 async def send_update():
     """
@@ -462,19 +451,15 @@ async def send_update():
             due_date = dateparser.parse(str(row[3]))
             if due_date.month != time_now.month or due_date.day != time_now.day:
                 break
-            embed = discord.Embed(
-                type='rich',
-                title=f'{row[1]}',
-                color=INCOMPLETE
+            embed = discord.Embed(type="rich", title=f"{row[1]}", color=INCOMPLETE)
+            embed.add_field(name=f"{row[2]}", value=f"Due {row[3]}", inline=False)
+            await channel.send(
+                (
+                    "Hey @everyone, this assignment is due soon! Make sure to mark it as complete in #assignments once you're done."
+                )
             )
-            embed.add_field(
-                name=f'{row[2]}',
-                value=f'Due {row[3]}',
-                inline=False
-            )
-            await channel.send(("Hey @everyone, this assignment is due soon! Make sure to mark it as complete in #assignments once you're done."))
             await channel.send(embed=embed)
-            
+
         # Send reminders for to-dos
         query_todo = f"SELECT * FROM Todos WHERE GuildID={guild.id} AND Completed=0 ORDER BY Deadline ASC"
         for row in cur.execute(query_todo):
@@ -483,17 +468,11 @@ async def send_update():
             date_format = due_date.strftime("%m/%d %I:%M%p")
             if due_date.month != time_now.month or due_date.day != time_now.day:
                 break
-            embed = discord.Embed(
-                type='rich',
-                title=f'{row[1]}',
-                color=INCOMPLETE
+            embed = discord.Embed(type="rich", title=f"{row[1]}", color=INCOMPLETE)
+            embed.add_field(name="", value=f"Due {date_format}", inline=False)
+            await channel.send(
+                f"Hey <@{row[4]}>, you have a to-do due soon! Make sure to mark it as complete in #to-do once you're done."
             )
-            embed.add_field(
-                name="",
-                value=f'Due {date_format}',
-                inline=False
-            )
-            await channel.send(f"Hey <@{row[4]}>, you have a to-do due soon! Make sure to mark it as complete in #to-do once you're done.")
             await channel.send(embed=embed)
 
 
@@ -501,7 +480,9 @@ async def send_update():
 @discord.app_commands.describe(user="Who to remind")
 async def remind(interaction: discord.Interaction, user: discord.Member):
     await interaction.response.send_message("Sent reminder!", ephemeral=True)
-    embed = discord.Embed(title="Reminder!", description=f"You have an upcoming to-do: ", color=INCOMPLETE)
+    embed = discord.Embed(
+        title="Reminder!", description=f"You have an upcoming to-do: ", color=INCOMPLETE
+    )
 
     # get user's upcoming to-do with nearest deadline
     query = f"SELECT * FROM Todos WHERE completed=0 AND UserID={user.id} ORDER BY Deadline ASC"
@@ -514,10 +495,11 @@ async def remind(interaction: discord.Interaction, user: discord.Member):
             name=row[1], value="Due " + date.strftime("%m/%d %I:%M%p"), inline=False
         )
         break
-    
+
     # if no upcoming to-dos
-    if (i == 0):
+    if i == 0:
         return
     await user.send(embed=embed)
+
 
 bot.run(TOKEN)
