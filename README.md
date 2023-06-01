@@ -18,6 +18,7 @@ Since our code assumes the `.db` (database) file is named `data.db`, you can ren
 database tables premade and empty.
 
 Finally, run:
+
 `python GetItDone.py`
 
 To invite our Get It Done to your server, use this link! It may not be running, as we currently need to run it locally on one of our machines, but feel free to ask us to host it.
