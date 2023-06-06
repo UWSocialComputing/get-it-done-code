@@ -431,7 +431,7 @@ async def on_raw_reaction_remove(payload):
 
 # ------------------ reminders --------------------------
 utc = datetime.timezone.utc
-sched_time = datetime.time(hour=7, minute=40, tzinfo=utc)  # 7h00 UTC = 0h00 PDT
+sched_time = datetime.time(hour=7, minute=0, tzinfo=utc)  # 7h00 UTC = 0h00 PDT
 
 
 @tasks.loop(time=sched_time)
